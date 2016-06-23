@@ -21,7 +21,7 @@
   #:use-module (srfi srfi-1)           ;; for reduce, delete!, member and delete-duplicates
   #:use-module (srfi srfi-9)
   #:use-module (rnrs bytevectors)      ;; for make-bytevector, bytevector-copy!
-  #:use-module (rnrs hashtables)       ;; for make-hashtable, etc
+  #:use-module (rnrs hashtables)       ;; for make-eqv-hashtable, etc
   #:use-module (rnrs io ports)         ;; for get-u8
   #:use-module ((ice-9 iconv)          ;; for bytevector->string (guile-2.0 does not provide it in rnrs)
 		#:select (bytevector->string)
@@ -115,9 +115,9 @@
 		      in
 		      out
 		      '()
-		      (make-hashtable _file-hash _file-equal?)
+		      (make-eqv-hashtable)
 		      '()
-		      (make-hashtable _file-hash _file-equal?)
+		      (make-eqv-hashtable)
 		      '()
 		      #f
 		      #f)))
@@ -195,23 +195,21 @@
 	      (append (reverse checked) (cdr remaining))
 	      (loop (cdr remaining) (cons first checked)))))))
 
+;; this takes a port or a file descriptor as an argument and returns a
+;; file descriptor (being the port's underlying file descriptor in the
+;; case of a port).  It is used by _file-equal? to test for file
+;; equality and to make keys for the file watch actions hashtables.
+(define-syntax-rule (_fd-or-port->fd file)
+  (let ((f file))
+    (if (port? f) (fileno f) f)))
+
 ;; for the purposes of the event loop, two files compare equal if
 ;; their file descriptors are the same, even if one is a port and one
 ;; is a file descriptor (or both are ports)
 (define (_file-equal? file1 file2)
-  (let ((fd1 (if (port? file1) (fileno file1) file1))
-	(fd2 (if (port? file2) (fileno file2) file2)))
+  (let ((fd1 (_fd-or-port->fd file1))
+	(fd2 (_fd-or-port->fd file2)))
     (= fd1 fd2)))
-
-;; this procedure is a hash function for port/file descriptor hashing.
-;; For file descriptors it just returns the descriptor, and for ports
-;; it returns the underlying file descriptor, so this hasher matches
-;; the _file-equal? equality predicate, and meets the requirements
-;; that (i) the same input always provides the same output, and (ii)
-;; any two files which compare equal with _file-equal? will also have
-;; the same hash value.
-(define (_file-hash file)
-  (if (port? file) (fileno file) file))
 
 ;; we don't need any mutexes here as we only access any of the
 ;; read-files, read-files-actions, write-files and write-files-actions
@@ -222,7 +220,8 @@
 ;; purposes of removal.
 (define (_remove-read-watch-impl! file el)
   (_read-files-set! el (delete! file (_read-files-get el) _file-equal?))
-  (hashtable-delete! (_read-files-actions-get el) file))
+  (hashtable-delete! (_read-files-actions-get el)
+		     (_fd-or-port->fd file)))
 
 ;; we don't need any mutexes here as we only access any of the
 ;; read-files, read-files-actions, write-files and write-files-actions
@@ -233,7 +232,8 @@
 ;; purposes of removal.
 (define (_remove-write-watch-impl! file el)
   (_write-files-set! el (delete! file (_write-files-get el) _file-equal?))
-  (hashtable-delete! (_write-files-actions-get el) file))
+  (hashtable-delete! (_write-files-actions-get el)
+		     (_fd-or-port->fd file)))
 
 ;; the 'el' (event loop) argument is optional.  This procedure starts
 ;; the event loop passed in as an argument, or if none is passed (or
@@ -297,7 +297,9 @@
 			      (apply throw args))))))
 	     (for-each (lambda (elt)
 			 (let ((action
-				(hashtable-ref read-files-actions elt #f)))
+				(hashtable-ref read-files-actions
+					       (_fd-or-port->fd elt)
+					       #f)))
 			   (if action
 			       (when (not (action 'in))
 				 (_remove-read-watch-impl! elt el))
@@ -305,7 +307,9 @@
 		       (delv event-fd (car res)))
 	     (for-each (lambda (elt)
 			 (let ((action
-				(hashtable-ref write-files-actions elt #f)))
+				(hashtable-ref write-files-actions
+					       (_fd-or-port->fd elt)
+					       #f)))
 			   (if action
 			       (when (not (action 'out))
 			         (_remove-write-watch-impl! elt el))
@@ -313,8 +317,12 @@
 		       (cadr res))
 	     (for-each (lambda (elt)
 			 (let ((action
-				(or (hashtable-ref read-files-actions elt #f)
-				    (hashtable-ref write-files-actions elt #f))))
+				(or (hashtable-ref read-files-actions
+						   (_fd-or-port->fd elt)
+						   #f)
+				    (hashtable-ref write-files-actions
+						   (_fd-or-port->fd elt)
+						   #f))))
 			   (if action
 			       (when (not (action 'excpt))
 				 (if (member elt read-files _file-equal?)
@@ -432,15 +440,9 @@
 		    el
 		    (cons file
 			  (delete! file (_read-files-get el) _file-equal?)))
-		   ;; before adding the new action entry, first
-		   ;; explicitly remove any old entry in case we
-		   ;; replace a file descriptor with a port, or vice
-		   ;; versa, where the port has the same underlying
-		   ;; file descriptor: R6RS is not clear that the key
-		   ;; as well as the value will be substituted in such
-		   ;; circumstances
-		   (hashtable-delete! (_read-files-actions-get el) file)
-		   (hashtable-set! (_read-files-actions-get el) file proc))
+		   (hashtable-set! (_read-files-actions-get el)
+				   (_fd-or-port->fd file)
+				   proc))
 		 el)))
 
 ;; The 'el' (event loop) argument is optional.  This procedure will
@@ -494,15 +496,9 @@
 		    el
 		    (cons file
 			  (delete! file (_write-files-get el) _file-equal?)))
-		   ;; before adding the new action entry, first
-		   ;; explicitly remove any old entry in case we
-		   ;; replace a file descriptor with a port, or vice
-		   ;; versa, where the port has the same underlying
-		   ;; file descriptor: R6RS is not clear that the key
-		   ;; as well as the value will be substituted in such
-		   ;; circumstances
-		   (hashtable-delete! (_write-files-actions-get el) file)
-		   (hashtable-set! (_write-files-actions-get el) file proc))
+		   (hashtable-set! (_write-files-actions-get el)
+				   (_fd-or-port->fd file)
+				   proc))
 		 el)))
 
 ;; The 'el' (event loop) argument is optional.  This procedure will
@@ -919,11 +915,13 @@
 	 (set! text-len (1+ text-len)))
        (define (make-outstring)
 	 ;; guile's bytevector->string procedure is non-standard and
-	 ;; takes an encoding string and not a transcoder as its last
-	 ;; argument: we use the port's encoding if it has one (it
+	 ;; takes an encoding string and not a transcoder as its
+	 ;; second argument, and an optional conversion strategy as
+	 ;; its third: we use the port's encoding if it has one (it
 	 ;; will if setlocale has been called), otherwise the default
 	 ;; port encoding, or if none latin-1 (which is encoding
-	 ;; neutral in guile-2.0)
+	 ;; neutral in guile-2.0).  We also use the port's conversion
+	 ;; strategy.
 	 (let ((encoding (or (port-encoding port)
 			     (fluid-ref %default-port-encoding)
 			     "ISO-8859-1"))
@@ -1053,11 +1051,13 @@
 	 (set! text-len (1+ text-len)))
        (define (make-outstring)
 	 ;; guile's bytevector->string procedure is non-standard and
-	 ;; takes an encoding string and not a transcoder as its last
-	 ;; argument: we use the port's encoding if it has one (it
+	 ;; takes an encoding string and not a transcoder as its
+	 ;; second argument, and an optional conversion strategy as
+	 ;; its third: we use the port's encoding if it has one (it
 	 ;; will if setlocale has been called), otherwise the default
 	 ;; port encoding, or if none latin-1 (which is encoding
-	 ;; neutral in guile-2.0)
+	 ;; neutral in guile-2.0).  We also use the port's conversion
+	 ;; strategy.
 	 (let ((encoding (or (port-encoding port)
 			     (fluid-ref %default-port-encoding)
 			     "ISO-8859-1"))
@@ -1214,11 +1214,13 @@
 	 (set! text-len (1+ text-len)))
        (define (make-outstring)
 	 ;; guile's bytevector->string procedure is non-standard and
-	 ;; takes an encoding string and not a transcoder as its last
-	 ;; argument: we use the port's encoding if it has one (it
+	 ;; takes an encoding string and not a transcoder as its
+	 ;; second argument, and an optional conversion strategy as
+	 ;; its third: we use the port's encoding if it has one (it
 	 ;; will if setlocale has been called), otherwise the default
 	 ;; port encoding, or if none latin-1 (which is encoding
-	 ;; neutral in guile-2.0)
+	 ;; neutral in guile-2.0).  We also use the port's conversion
+	 ;; strategy.
 	 (let ((encoding (or (port-encoding port)
 			     (fluid-ref %default-port-encoding)
 			     "ISO-8859-1"))

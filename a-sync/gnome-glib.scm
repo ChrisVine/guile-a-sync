@@ -280,10 +280,12 @@
     (set! text-len (1+ text-len)))
   (define (make-outstring)
     ;; guile's bytevector->string procedure is non-standard and takes
-    ;; an encoding string and not a transcoder as its last argument:
-    ;; we use the port's encoding if it has one (it will if setlocale
-    ;; has been called), otherwise the default port encoding, or if
-    ;; none latin-1 (which is encoding neutral in guile-2.0)
+    ;; an encoding string and not a transcoder as its second argument,
+    ;; and an optional conversion strategy as its third: we use the
+    ;; port's encoding if it has one (it will if setlocale has been
+    ;; called), otherwise the default port encoding, or if none
+    ;; latin-1 (which is encoding neutral in guile-2.0).  We also use
+    ;; the port's conversion strategy.
     (let ((encoding (or (port-encoding port)
 			(fluid-ref %default-port-encoding)
 			"ISO-8859-1"))
