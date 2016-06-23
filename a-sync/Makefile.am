@@ -2,7 +2,7 @@
 
 SOURCES = monotonic-time.scm coroutines.scm event-loop.scm compose.scm
 
-moduledir = $(GUILE_SITE)/a-sync
+moduledir = $(GUILE20_SITEDIR)/a-sync
 module_DATA = $(SOURCES) gnome-glib.scm
 
 if COMPILE_TO_BYTECODE

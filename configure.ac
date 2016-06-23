@@ -33,8 +33,8 @@ AC_PROG_LIBTOOL
 AC_CONFIG_MACRO_DIR([m4])
 
 dnl check for guile
-GUILE_SITE_DIR
 PKG_CHECK_MODULES(GUILE, guile-2.0 >= 2.0.2)
+AC_CHECK_GUILE_SITEDIR
 
 dnl check whether to compile scheme files to bytecode
 AC_CHECK_COMPILE_SCHEME
