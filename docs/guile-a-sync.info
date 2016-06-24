@@ -8,10 +8,10 @@ guile-a-sync reference
 **********************
 
 This is the guile-a-sync library.  It provides both an asynchronous
-event loop for guile, and coroutines to enable an event loop (including
-other event loops such as the glib event loop) to be used with 'await'
-semantics to deal with inversion of control - otherwise known as
-"callback hell".
+event loop for guile-2.0, and coroutines to enable an event loop
+(including other event loops such as the glib event loop) to be used
+with 'await' semantics to deal with inversion of control - otherwise
+known as "callback hell".
 
    The guile-a-sync library is provided in five modules:
 * Menu:
@@ -1465,10 +1465,10 @@ coroutines. module.
 
 Tag Table:
 Node: Top85
-Node: coroutines1099
-Node: event loop14941
-Node: monotonic time51359
-Node: gnome glib52793
-Node: compose70556
+Node: coroutines1103
+Node: event loop14945
+Node: monotonic time51363
+Node: gnome glib52797
+Node: compose70560
 
 End Tag Table

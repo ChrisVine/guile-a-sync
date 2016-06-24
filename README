@@ -1,7 +1,7 @@
 Overview
 --------
 
-This library provides a thread safe event loop for guile
+This library provides a thread safe event loop for guile-2.0
 (event-loop.scm) with support for watches on ports/file descriptors
 and timeouts, and which permits events to be posted by other tasks.
 This includes tasks running on other threads.
@@ -12,6 +12,9 @@ control (aka "callback hell").
 
 See the documentation mentioned below for further details, and the
 docs/example.scm and docs/example-glib.scm files.
+
+A separate guile-a-sync2 library is available for guile-2.2 here:
+https://github.com/ChrisVine/guile-a-sync2 .
 
 Installation
 ------------
