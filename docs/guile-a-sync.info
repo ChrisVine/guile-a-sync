@@ -141,18 +141,18 @@ The (a-sync coroutines) module provides the following procedures:
      returning false but the waitable procedure still thinks it has a
      call to 'await' to be made.  The *note event-loop: event loop.
      module has await-task!, await-task-in-thread!, await-timeout!,
-     a-sync-read-watch!, await-getline!  and a-sync-write-watch!
-     convenience procedures which will correctly set this up for you
-     automatically, and the *note compose: compose. module provides a
-     compose-a-sync macro for composition.  If those convenience
-     procedures are used, exceptions should always be handled locally in
-     the waitable procedure (and if the callback might throw, in the
-     callback also) if it is undesirable that uncaught exceptions
-     propagate out of event-loop-run!.  In the case of
-     await-task-in-thread!, that procedure also takes an optional
-     handler argument which will handle any exceptions thrown by the
-     task: otherwise the task thread throwing would terminate the
-     program if not caught within the task.
+     a-sync-read-watch!, await-getline!, await-geteveryline!,
+     await-getsomelines!  and a-sync-write-watch!  convenience
+     procedures which will correctly set this up for you automatically,
+     and the *note compose: compose. module provides a compose-a-sync
+     macro for composition.  If those convenience procedures are used,
+     exceptions should always be handled locally in the waitable
+     procedure (and if the callback might throw, in the callback also)
+     if it is undesirable that uncaught exceptions propagate out of
+     event-loop-run!.  In the case of await-task-in-thread!, that
+     procedure also takes an optional handler argument which will handle
+     any exceptions thrown by the task: otherwise the task thread
+     throwing would terminate the program if not caught within the task.
 
      There can be as many calls to 'await' and asynchronous callbacks in
      any one waitable procedure as wanted, to enable composition of
@@ -1466,9 +1466,9 @@ coroutines. module.
 Tag Table:
 Node: Top85
 Node: coroutines1103
-Node: event loop14945
-Node: monotonic time51363
-Node: gnome glib52797
-Node: compose70560
+Node: event loop14988
+Node: monotonic time51406
+Node: gnome glib52840
+Node: compose70603
 
 End Tag Table
