@@ -304,7 +304,21 @@
 (event-loop-run!)
 (event-loop-block! #f)
   
-;; Test 14: await-task-in-thread! with handler
+;; Test 14: await-task-in-thread! without handler (explicit loop argument)
+
+(a-sync (lambda (await resume)
+	  (let ((res
+	  	 (await-task-in-thread! await resume #f
+	  				(lambda ()
+	  				  (+ 5 10)))))
+	    (test-result 15 res)
+	    (print-result)
+	    (event-loop-quit!))))
+(event-loop-block! #t)
+(event-loop-run!)
+(event-loop-block! #f)
+  
+;; Test 15: await-task-in-thread! with handler
 
 (a-sync (lambda (await resume)
 	  (let ((res
@@ -321,7 +335,7 @@
 (event-loop-run!)
 (event-loop-block! #f)
 
-;; Test 15: await-timeout!
+;; Test 16: await-timeout!
 
 (a-sync (lambda (await resume)
 	  (let ((res
@@ -332,7 +346,7 @@
 	    (print-result))))
 (event-loop-run!)
   
-;; Test 16: await-getline! (also tests a-sync-read-watch!)
+;; Test 17: await-getline! (also tests a-sync-read-watch!)
 
 (let ()
   (define test-pipe (pipe))
@@ -347,7 +361,7 @@
   (force-output out)
   (event-loop-run!))
 
-;; Test 17: await-geteveryline! (also tests a-sync-read-watch!)
+;; Test 18: await-geteveryline! (also tests a-sync-read-watch!)
 
 (let ()
   (define test-pipe (pipe))
@@ -372,7 +386,7 @@
   (force-output out)
   (event-loop-run!))
 
-;; Test 18: await-getsomelines! (also tests a-sync-read-watch!)
+;; Test 19: await-getsomelines! (also tests a-sync-read-watch!)
 
 (let ()
   (define test-pipe (pipe))
@@ -401,7 +415,7 @@
   (event-loop-run!)
   (close out))
 
-;; Test 19: await-getsomelines! exception handling (also tests strategy for await-geteveryline!)
+;; Test 20: await-getsomelines! exception handling (also tests strategy for await-geteveryline!)
 ;; exception propagates out of event-loop-run!
 (let ()
   (define test-pipe (pipe))
@@ -434,7 +448,7 @@
   (test-result 2 count)
   (print-result))
 
-;; Test 20: await-getsomelines! exception handling (also tests strategy for await-geteveryline!)
+;; Test 21: await-getsomelines! exception handling (also tests strategy for await-geteveryline!)
 ;; exception caught within a-sync block
 (let ()
   (define test-pipe (pipe))
@@ -466,7 +480,7 @@
   (test-result 2 count)
   (print-result))
 
-;; Test 21: a-sync-write-watch!
+;; Test 22: a-sync-write-watch!
 
 (let ()
   (define test-pipe (pipe))
@@ -500,7 +514,7 @@
 	    (print-result)))
   (event-loop-run!))
 
-;; Test 22: compose-a-sync and no-await
+;; Test 23: compose-a-sync and no-await
 
 (compose-a-sync ((res (await-task-in-thread! (lambda ()
 					       (+ 5 10)))))

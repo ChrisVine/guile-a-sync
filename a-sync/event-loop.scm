@@ -704,12 +704,12 @@
 ;; event-loop-run!.
 (define (await-task-in-thread! await resume . rest)
   (match rest
-    ((_ _ _)
-     (apply _await-task-in-thread-impl! await resume rest))
-    ((#f _)
-     (apply _await-task-in-thread-impl! await resume rest))
-    ((($ <event-loop>) _)
-     (apply _await-task-in-thread-impl! await resume rest))
+    ((loop thunk handler)
+     (_await-task-in-thread-impl! await resume loop thunk handler))
+    ((#f thunk)
+     (_await-task-in-thread-impl! await resume #f thunk #f))
+    ((($ <event-loop>) thunk)
+     (_await-task-in-thread-impl! await resume (car rest) thunk #f))
     ((thunk handler)
      (_await-task-in-thread-impl! await resume #f thunk handler))
     ((thunk)
@@ -717,7 +717,7 @@
     (_
      (error "Wrong number of arguments passed to await-task-in-thread!" await resume rest))))
 
-(define* (_await-task-in-thread-impl! await resume loop thunk #:optional handler)
+(define (_await-task-in-thread-impl! await resume loop thunk handler)
   ;; set the event loop value here so that if the default event
   ;; loop is chosen, it is the one pertaining at the time this
   ;; procedure is called
