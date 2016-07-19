@@ -386,7 +386,7 @@ situation is retained by user code.
      so and the descriptor is also available for writing, the write
      callback will also be called with its argument set to 'out.  If
      there is already a read watch for the file passed, the old one will
-     be replaced by the new one.  If proc returns #f, the read watch
+     be replaced by the new one.  If 'proc' returns #f, the read watch
      will be removed from the event loop, otherwise the watch will
      continue.  This is thread safe - any thread may add a watch, and
      the callback will execute in the event loop thread.  The file
@@ -420,7 +420,7 @@ situation is retained by user code.
      called with 'excpt rather than the write watch procedure, so if
      that procedure returns #f only the read watch will be removed).  If
      there is already a write watch for the file passed, the old one
-     will be replaced by the new one.  If proc returns #f, the write
+     will be replaced by the new one.  If 'proc' returns #f, the write
      watch will be removed from the event loop, otherwise the watch will
      continue.  This is thread safe - any thread may add a watch, and
      the callback will execute in the event loop thread.  The file
@@ -1134,6 +1134,19 @@ module, so as not to create a hard dependency on guile-gnome.
      procedure.  It should be possible to call this procedure in any
      thread.
 
+     'ioc' is the g-io-condition object to which the watch is to be
+     attached, and 'cond' is a list of symbols (being 'in, 'out, 'pri,
+     'hup, 'err and 'nval) comprising the events for which the watch is
+     established.
+
+     'func' is executed when an event occurs, and takes two arguments:
+     first the g-io-channel object to which the watch has been attached,
+     and second a g-io-condition object indicating the watch condition
+     which has been met (note: the interface for g-io-condition objects
+     is broken in guile-gnome at present).  The watch is ended either by
+     'func' returning #f, or by applying g-source-remove to the return
+     value of this procedure.  Otherwise the watch will continue.
+
      See the documentation on the a-sync-glib-read-watch procedure for
      some of the difficulties with using g-io-channel watches with
      guile-gnome.
@@ -1467,8 +1480,8 @@ Tag Table:
 Node: Top85
 Node: coroutines1103
 Node: event loop14988
-Node: monotonic time51406
-Node: gnome glib52840
-Node: compose70603
+Node: monotonic time51410
+Node: gnome glib52844
+Node: compose71335
 
 End Tag Table

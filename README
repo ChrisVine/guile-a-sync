@@ -14,7 +14,8 @@ See the documentation mentioned below for further details, and the
 docs/example.scm and docs/example-glib.scm files.
 
 A separate guile-a-sync2 library is available for guile-2.2 here:
-https://github.com/ChrisVine/guile-a-sync2 .
+https://github.com/ChrisVine/guile-a-sync2 .  This library and
+guile-a-sync2 are parallel installable.
 
 Installation
 ------------

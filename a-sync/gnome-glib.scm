@@ -156,6 +156,19 @@
 ;; procedure.  It should be possible to call this procedure in any
 ;; thread.
 ;;
+;; 'ioc' is the g-io-condition object to which the watch is to be
+;; attached, and 'cond' is a list of symbols (being 'in, 'out, 'pri,
+;; 'hup, 'err and 'nval) comprising the events for which the watch is
+;; established.
+;;
+;; 'func' is executed when an event occurs, and takes two arguments:
+;; first the g-io-channel object to which the watch has been attached,
+;; and second a g-io-condition object indicating the watch condition
+;; which has been met (note: the interface for g-io-condition objects
+;; is broken in guile-gnome at present).  The watch is ended either by
+;; 'func' returning #f, or by applying g-source-remove to the return
+;; value of this procedure.  Otherwise the watch will continue.
+;;
 ;; See the documentation on the a-sync-glib-read-watch procedure for
 ;; some of the difficulties with using g-io-channel watches with
 ;; guile-gnome.

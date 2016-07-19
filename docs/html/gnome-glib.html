@@ -197,6 +197,19 @@ main context (the main program loop).  It returns a glib ID which can
 be passed subsequently to the g-source-remove procedure.  It should be
 possible to call this procedure in any thread.
 </p>
+<p>&rsquo;ioc&rsquo; is the g-io-condition object to which the watch is to be
+attached, and &rsquo;cond&rsquo; is a list of symbols (being &rsquo;in, &rsquo;out, &rsquo;pri,
+&rsquo;hup, &rsquo;err and &rsquo;nval) comprising the events for which the watch is
+established.
+</p>
+<p>&rsquo;func&rsquo; is executed when an event occurs, and takes two arguments:
+first the g-io-channel object to which the watch has been attached,
+and second a g-io-condition object indicating the watch condition
+which has been met (note: the interface for g-io-condition objects is
+broken in guile-gnome at present).  The watch is ended either by
+&rsquo;func&rsquo; returning #f, or by applying g-source-remove to the return
+value of this procedure.  Otherwise the watch will continue.
+</p>
 <p>See the documentation on the a-sync-glib-read-watch procedure for
 some of the difficulties with using g-io-channel watches with
 guile-gnome.
