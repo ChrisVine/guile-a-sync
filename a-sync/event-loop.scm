@@ -84,7 +84,8 @@
 
 (define-record-type <event-loop>
   (_make-event-loop mutex q done event-in event-out read-files read-files-actions
-                    write-files write-files-actions timeouts current-timeout block)
+                    write-files write-files-actions timeouts current-timeout block
+		    num-tasks threshold delay loop-thread)
   event-loop?
   (mutex _mutex-get)
   (q _q-get)
@@ -97,30 +98,70 @@
   (write-files-actions _write-files-actions-get)
   (timeouts _timeouts-get _timeouts-set!)
   (current-timeout _current-timeout-get _current-timeout-set!)
-  (block _block-get _block-set!))
-  
-(define (make-event-loop)
-  (let* ((event-pipe (pipe))
-	 (in (car event-pipe))
-	 (out (cdr event-pipe)))
-    ;; the write end of the pipe needs to be set non-blocking so that
-    ;; if the pipe fills and the event loop thread is also putting a
-    ;; new event in the queue, an exception is thrown rather than a
-    ;; deadlock arising
-    (fcntl out F_SETFL (logior O_NONBLOCK
-			       (fcntl out F_GETFL)))
-    (_make-event-loop (make-mutex)
-		      (make-q)
-		      #f
-		      in
-		      out
-		      '()
-		      (make-eqv-hashtable)
-		      '()
-		      (make-eqv-hashtable)
-		      '()
-		      #f
-		      #f)))
+  (block _block-get _block-set!)
+  (num-tasks _num-tasks-get _num-tasks-set!)
+  (threshold _threshold-get)
+  (delay _delay-get)
+  (loop-thread _loop-thread-get _loop-thread-set!))
+
+;; This procedure constructs an event loop object.  From version 0.8,
+;; this procedure optionally takes two throttling arguments for
+;; backpressure when applying the event-post! procedure to the event
+;; loop.  The 'throttle-threshold' argument specifies the number of
+;; unexecuted tasks queued for execution, by virtue of calls to
+;; event-post!, at which throttling will first be applied.  Where the
+;; threshold is exceeded, throttling proceeds by adding a wait to any
+;; thread which calls the event-post! procedure, equal to the cube of
+;; the number of times (if any) by which the number of queued tasks
+;; exceeds the threshold multiplied by the value of 'threshold-delay'.
+;; The value of 'threshold-delay' should be given in microseconds.
+;; Throttling is only applied where the call to event-post! is made in
+;; a thread other than the one in which the event loop runs.
+
+;; So if the threshold given is 10000 tasks and the delay given is
+;; 1000 microseconds, upon 10000 unexecuted tasks accumulating a delay
+;; of 1000 microseconds will be appled to callers of event-post!, at
+;; 20000 unexecuted tasks a delay of 8000 microseconds will be
+;; applied, and at 30000 unexecuted tasks a delay of 27000
+;; microseconds will be applied, and so on.
+;;
+;; If throttle-threshold and throttle-delay arguments are not provided
+;; (or #f is passed for them), then no throttling takes place.
+(define make-event-loop
+  (case-lambda
+    (() (make-event-loop #f #f))
+    ((throttle-threshold throttle-delay)
+     (when (and throttle-threshold
+		(or (not (number? throttle-threshold))
+		    (not (number? throttle-delay))
+		    (< throttle-threshold 1)
+		    (< throttle-delay 1)))
+       (error "invalid arguments passed to make-event-loop"))
+     (let* ((event-pipe (pipe))
+	    (in (car event-pipe))
+	    (out (cdr event-pipe)))
+       ;; the write end of the pipe needs to be set non-blocking so
+       ;; that if the pipe fills and the event loop thread is also
+       ;; putting a new event in the queue, an exception is thrown
+       ;; rather than a deadlock arising
+       (fcntl out F_SETFL (logior O_NONBLOCK
+				  (fcntl out F_GETFL)))
+       (_make-event-loop (make-mutex)
+			 (make-q)
+			 #f
+			 in
+			 out
+			 '()
+			 (make-eqv-hashtable)
+			 '()
+			 (make-eqv-hashtable)
+			 '()
+			 #f
+			 #f
+			 0
+			 throttle-threshold
+			 throttle-delay
+			 #f)))))
 
 ;; timeouts are kept as an unsorted list of timeout items.  Each
 ;; timeout item is a vector of four elements.  First, an absolute time
@@ -235,6 +276,21 @@
   (hashtable-delete! (_write-files-actions-get el)
 		     (_fd-or-port->fd file)))
 
+;; this procedure is only called by event-post!, and tests for the
+;; number of tasks pending which have been added with that procedure,
+;; and adds a wait to the calling thread if necessary.  See comments
+;; on make-event-loop for further information.
+(define (_check-for-throttle el)
+  (let ((threshold (_threshold-get el)))
+    (when threshold
+      (let ((loop-thread (with-mutex (_mutex-get el) (_loop-thread-get el))))
+	(when (and threshold loop-thread (not (eqv? loop-thread (current-thread))))
+	  (let* ((tasks (with-mutex (_mutex-get el) (_num-tasks-get el)))
+		 (excess (/ tasks threshold)))
+	    (when (not (zero? (truncate excess)))
+	      (let loop ((remaining (* excess excess excess (_delay-get el))))
+		(unless (zero? remaining) (loop (usleep remaining)))))))))))
+   
 ;; the 'el' (event loop) argument is optional.  This procedure starts
 ;; the event loop passed in as an argument, or if none is passed (or
 ;; #f is passed) it starts the default event loop.  The event loop
@@ -258,6 +314,8 @@
   (define q (_q-get el))
   (define event-in (_event-in-get el))
   (define event-fd (fileno event-in))
+
+  (with-mutex mutex (_loop-thread-set! el (current-thread)))
 
   (catch
    #t
@@ -347,7 +405,15 @@
 		     (loop2)))))
 	     (let loop3 ()
 	       (let ((action (with-mutex mutex
-			       (if (q-empty? q) #f (deq! q)))))
+			       (if (q-empty? q)
+				   (begin
+				     ;; num-tasks should be 0 with an
+				     ;; empty queue anyway, but ...
+				     (_num-tasks-set! el 0)
+				     #f)
+				   (begin
+				     (_num-tasks-set! el (1- (_num-tasks-get el)))
+				     (deq! q))))))
 		 (when action
 		   (action)
 		   ;; one of the posted events may have called
@@ -364,12 +430,12 @@
      ;; valid state and rethrow
      (_event-loop-reset! el)
      (apply throw args))))
-   
+
 ;; This procedure is only called in the event loop thread, by
 ;; event-loop-run!  The only things requiring protection by a mutex
-;; are the q, done-set and event-out fields of the event loop object.
-;; However, for consistency we deal with all operations on the event
-;; pipe below via the mutex.
+;; are the q, done-set, event-out, num-tasks and loop-thread fields of
+;; the event loop object.  However, for consistency we deal with all
+;; operations on the event pipe below via the mutex.
 (define (_event-loop-reset! el)
   ;; the only foolproof way of vacating a unix pipe is to close it and
   ;; then create another one
@@ -396,7 +462,9 @@
 	(when (not (q-empty? q))
 	  (deq! q)
 	  (loop))))
-    (_done-set! el #f))
+    (_done-set! el #f)
+    (_num-tasks-set! el 0)
+    (_loop-thread-set! el #f))
   (_read-files-set! el '())
   (hashtable-clear! (_read-files-actions-get el))
   (_write-files-set! el '())
@@ -544,12 +612,18 @@
 ;; This procedure should not throw an exception unless memory is
 ;; exhausted.  If the 'action' callback throws, and the exception is
 ;; not caught locally, it will propagate out of event-loop-run!.
+;;
+;; Where this procedure is called by other than the event loop thread,
+;; throttling may take place if the number of posted callbacks waiting
+;; to execute exceeds the threshold set for the event loop - see the
+;; documentation on make-event-loop for further details.
 (define* (event-post! action #:optional el)
   (let ((el (or el (get-default-event-loop))))
     (when (not el) 
       (error "No default event loop set for call to event-post!"))
     (with-mutex (_mutex-get el)
       (enq! (_q-get el) action)
+      (_num-tasks-set! el (1+ (_num-tasks-get el)))
       (let ((out (_event-out-get el)))
 	;; if the event pipe is full and an EAGAIN error arises, we
 	;; can just swallow it.  The only purpose of writing #\x is to
@@ -561,7 +635,8 @@
 	    (force-output out))
 	  (lambda args
 	    (unless (= EAGAIN (system-error-errno args))
-	      (apply throw args))))))))
+	      (apply throw args))))))
+    (_check-for-throttle el)))
 
 ;; The 'el' (event loop) argument is optional.  This procedure adds a
 ;; timeout to the event loop passed in as an argument, or if none is
