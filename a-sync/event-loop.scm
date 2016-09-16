@@ -288,7 +288,7 @@
 	  (let* ((tasks (with-mutex (_mutex-get el) (_num-tasks-get el)))
 		 (excess (/ tasks threshold)))
 	    (when (not (zero? (truncate excess)))
-	      (let loop ((remaining (* excess excess excess (_delay-get el))))
+	      (let loop ((remaining (inexact->exact (round (* excess excess excess (_delay-get el))))))
 		(unless (zero? remaining) (loop (usleep remaining)))))))))))
    
 ;; the 'el' (event loop) argument is optional.  This procedure starts
