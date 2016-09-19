@@ -1,4 +1,4 @@
-This is guile-a-sync.info, produced by makeinfo version 6.1 from
+This is guile-a-sync.info, produced by makeinfo version 6.3 from
 guile-a-sync.texi.
 
 
@@ -529,6 +529,22 @@ situation is retained by user code.
      the timeout with the given tag from executing in the event loop
      passed in as an argument, or if none is passed (or #f is passed),
      in the default event loop.  It may be called by any thread.
+
+ -- Scheme Procedure: event-loop-tasks [loop]
+     This procedure returns the number of callbacks posted to an event
+     loop with the event-post!  procedure which at the time still remain
+     queued for execution.  Amongst other things, it can be used by a
+     calling thread which is not the event loop thread to determine
+     whether throttling is likely to be applied to it when calling
+     event-post!  - see the documentation on make-event-loop for further
+     details.
+
+     The 'el' (event loop) argument is optional: this procedure operates
+     on the event loop passed in as an argument, or if none is passed
+     (or #f is passed), on the default event loop.  This procedure is
+     thread safe - any thread may call it.
+
+     This procedure is first available in version 0.8 of this library.
 
  -- Scheme Procedure: event-loop-block! val [loop]
      By default, upon there being no more watches, timeouts and posted
@@ -1566,8 +1582,8 @@ Tag Table:
 Node: Top85
 Node: coroutines1103
 Node: event loop14988
-Node: monotonic time55971
-Node: gnome glib57405
-Node: compose75896
+Node: monotonic time56783
+Node: gnome glib58217
+Node: compose76708
 
 End Tag Table
