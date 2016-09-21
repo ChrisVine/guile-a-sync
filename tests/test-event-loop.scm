@@ -398,3 +398,67 @@
 	(test-result 3 count)))
   (test-result 3 count)
   (print-result))
+
+;;;;;;;;;;;;; now tests with a throttled event loop ;;;;;;;;;;;;;
+
+(define throttled-loop (make-event-loop 3 100000))
+
+(define-syntax-rule (get-elapsed-millisecs body0 body1 ...)
+  (let ((start-time (get-internal-real-time)))
+    body0 body1 ...
+    (let ((end-time (get-internal-real-time)))
+      (/ (* (- end-time start-time) 1000)
+	 internal-time-units-per-second))))
+
+;; Test 15: throttling arguments of make-event-loop
+
+(let ()
+  (event-loop-block! #t throttled-loop)
+  (event-post!
+   (lambda ()
+     (let ((thread
+	    (call-with-new-thread
+	     (lambda ()
+	       (get-elapsed-millisecs
+		(let loop ((count 0))
+		  (if (< count 2)
+		      (begin
+			(event-post! 
+			 (lambda () #f)
+			 throttled-loop)
+			(loop (1+ count)))
+		      (event-post!
+		       (lambda ()
+			 (event-loop-block! #f throttled-loop))
+		       throttled-loop))))))))
+       (let ((elapsed-millisecs (join-thread thread)))
+	 (assert (>= elapsed-millisecs 100)))))
+   throttled-loop)
+  
+  (event-loop-run! throttled-loop)
+
+  (event-loop-block! #t throttled-loop)
+  (event-post!
+   (lambda ()
+     (let ((thread
+	    (call-with-new-thread
+	     (lambda ()
+	       (get-elapsed-millisecs
+		(let loop ((count 0))
+		  (if (< count 3)
+		      (begin
+			(event-post! 
+			 (lambda () #f)
+			 throttled-loop)
+			(loop (1+ count)))
+		      (event-post!
+		       (lambda ()
+			 (event-loop-block! #f throttled-loop))
+		       throttled-loop))))))))
+       (let ((elapsed-millisecs (join-thread thread)))
+	 ;; 100mS + 237mS = 337mS
+	 (assert (>= elapsed-millisecs 337)))))
+   throttled-loop)
+  
+  (event-loop-run! throttled-loop)
+  (print-result))
