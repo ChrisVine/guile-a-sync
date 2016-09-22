@@ -432,7 +432,7 @@
 			 (event-loop-block! #f throttled-loop))
 		       throttled-loop))))))))
        (let ((elapsed-millisecs (join-thread thread)))
-	 (assert (>= elapsed-millisecs 100)))))
+	 (assert (>= elapsed-millisecs 99)))))
    throttled-loop)
   
   (event-loop-run! throttled-loop)
@@ -457,7 +457,7 @@
 		       throttled-loop))))))))
        (let ((elapsed-millisecs (join-thread thread)))
 	 ;; 100mS + 237mS = 337mS
-	 (assert (>= elapsed-millisecs 337)))))
+	 (assert (>= elapsed-millisecs 336)))))
    throttled-loop)
   
   (event-loop-run! throttled-loop)
