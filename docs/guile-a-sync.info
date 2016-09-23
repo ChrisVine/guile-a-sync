@@ -547,10 +547,10 @@ situation is retained by user code.
      event-post!  - see the documentation on make-event-loop for further
      details.
 
-     The 'el' (event loop) argument is optional: this procedure operates
-     on the event loop passed in as an argument, or if none is passed
-     (or #f is passed), on the default event loop.  This procedure is
-     thread safe - any thread may call it.
+     The 'loop' (event loop) argument is optional: this procedure
+     operates on the event loop passed in as an argument, or if none is
+     passed (or #f is passed), on the default event loop.  This
+     procedure is thread safe - any thread may call it.
 
      This procedure is first available in version 0.8 of this library.
 
@@ -1606,8 +1606,8 @@ Tag Table:
 Node: Top85
 Node: coroutines1103
 Node: event loop15020
-Node: monotonic time58034
-Node: gnome glib59468
-Node: compose77959
+Node: monotonic time58036
+Node: gnome glib59470
+Node: compose77961
 
 End Tag Table
