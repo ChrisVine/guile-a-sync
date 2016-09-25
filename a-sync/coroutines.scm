@@ -197,10 +197,11 @@
 ;; one waitable procedure, operate on a 'start-task -->
 ;; await-on-result --> start-task --> await-on-result ...' basis, and
 ;; make calls to a-sync on separate waitable procedures for tasks
-;; which are to run independently.  This is easy using the convenience
-;; procedures mentioned above (see the examples).  A waitable
-;; procedure can itself call a-sync to construct another await-resume
-;; pair for the purpose of starting other asynchronous events.
+;; which are to run independently.  The convenience procedures
+;; mentioned above make this easy for many use cases (see the
+;; examples).  A waitable procedure can itself call a-sync to
+;; construct another await-resume pair for the purpose of starting
+;; other asynchronous events.
 ;;
 ;; This procedure can be used with any event loop, including the glib
 ;; event loop provided by guile-gnome and so with gtk+ callbacks, and

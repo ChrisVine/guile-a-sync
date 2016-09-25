@@ -170,11 +170,11 @@ The (a-sync coroutines) module provides the following procedures:
      a-sync on separate waitable procedures for tasks which are to run
      independently (as soon as any code calls a-sync's 'await' procedure
      in any a-sync block, a-sync will return and whatever follows it
-     will begin executing, including any following a-sync block).  This
-     approach is easy using the convenience procedures mentioned above
-     (see the examples below).  A waitable procedure can itself call
-     a-sync to construct another await-resume pair for the purpose of
-     starting other asynchronous events.
+     will begin executing, including any following a-sync block).  The
+     convenience procedures mentioned above make this easy for many use
+     cases (see the examples below).  A waitable procedure can itself
+     call a-sync to construct another await-resume pair for the purpose
+     of starting other asynchronous events.
 
      So, don't do this:
 
@@ -227,10 +227,28 @@ The (a-sync coroutines) module provides the following procedures:
 
           (event-loop-run!)
 
-     Or better still, when composing on the event loop from the *note
-     event-loop: event loop. module, use the await helper procedures, as
-     follows (in this example the two asynchronous operations run
-     consecutively):
+     or this, to loop asynchronously with a series of results:
+
+          (set-default-event-loop!) ;; if none has yet been set
+          (a-sync (lambda (await resume)
+          	  (event-post! (lambda ()
+          			 (let loop ((count 0))
+          			   (if (< count 5)
+          			       (begin
+          				 (resume count)
+          				 (loop (1+ count)))
+          			       (resume 'stop-iteration)))))
+          	  (let loop ()
+          	    (let ((res (await)))
+          	      (when (not (eq? 'stop-iteration res))
+          		(display res)(newline)
+          		(loop))))))
+          (event-loop-run!)
+
+     Or better, for many use cases when composing on the event loop from
+     the *note event-loop: event loop. module, you can use the await
+     helper procedures, as follows (in this example the two asynchronous
+     operations run consecutively):
 
           (set-default-event-loop!) ;; if none has yet been set
           (a-sync (lambda (await resume)
@@ -1605,9 +1623,9 @@ coroutines. module.
 Tag Table:
 Node: Top85
 Node: coroutines1103
-Node: event loop15020
-Node: monotonic time58036
-Node: gnome glib59470
-Node: compose77961
+Node: event loop15666
+Node: monotonic time58682
+Node: gnome glib60116
+Node: compose78607
 
 End Tag Table
