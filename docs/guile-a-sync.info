@@ -90,7 +90,8 @@ The (a-sync coroutines) module provides the following procedures:
      callback is ready to let it resume.  When it unblocks, the 'await'
      argument returns the value (if any) passed to 'resume' by the
      callback.  This async procedure must be called in the same thread
-     as that in which the event loop runs.
+     as that in which the event loop runs (as must 'await' and
+     'resume').
 
      None of the code in the waitable procedure should block on other
      things in the program, except by calls to await (which do not in
@@ -231,18 +232,36 @@ The (a-sync coroutines) module provides the following procedures:
 
           (set-default-event-loop!) ;; if none has yet been set
           (a-sync (lambda (await resume)
+          	  ;; executing task in event loop thread
           	  (event-post! (lambda ()
           			 (let loop ((count 0))
           			   (if (< count 5)
           			       (begin
-          				 (resume count)
+          				 (resume (* 2 count))
           				 (loop (1+ count)))
           			       (resume 'stop-iteration)))))
           	  (let loop ()
           	    (let ((res (await)))
           	      (when (not (eq? 'stop-iteration res))
           		(display res)(newline)
-          		(loop))))))
+          		(loop))))
+
+          	  ;; executing task in a worker thread
+          	  (call-with-new-thread
+          	   (lambda ()
+          	     (let loop ((count 5))
+          	       (if (< count 10)
+          		   (begin
+          		     (event-post! (lambda () (resume (* 2 count))))
+          		     (loop (1+ count)))
+          		   (event-post! (lambda () (resume 'stop-iteration)))))))
+          	  (let loop ()
+          	    (let ((res (await)))
+          	      (when (not (eq? 'stop-iteration res))
+          		(display res)(newline)
+          		(loop))))
+          	  (event-loop-block! #f)))
+          (event-loop-block! #t) ;; worker thread in operation
           (event-loop-run!)
 
      Or better, for many use cases when composing on the event loop from
@@ -1623,9 +1642,9 @@ coroutines. module.
 Tag Table:
 Node: Top85
 Node: coroutines1103
-Node: event loop15666
-Node: monotonic time58682
-Node: gnome glib60116
-Node: compose78607
+Node: event loop16409
+Node: monotonic time59425
+Node: gnome glib60859
+Node: compose79350
 
 End Tag Table
