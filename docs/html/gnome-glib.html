@@ -82,14 +82,15 @@ module, so as not to create a hard dependency on guile-gnome.
 <dt><a name="index-await_002dglib_002dtask_002din_002dthread"></a>Scheme Procedure: <strong>await-glib-task-in-thread</strong> <em>await resume thunk [handler]</em></dt>
 <dd><p>This is a convenience procedure which will run &rsquo;thunk&rsquo; in its own
 thread, and then post an event to the default glib main loop when
-&rsquo;thunk&rsquo; has finished.  This procedure calls &rsquo;await&rsquo; and will return
-the thunk&rsquo;s return value.  It is intended to be called in a waitable
-procedure invoked by a-sync.  If the optional &rsquo;handler&rsquo; argument is
-provided, then it will be run in the event loop thread if &rsquo;thunk&rsquo;
-throws and its return value will be the return value of this
-procedure; otherwise the program will terminate if an unhandled
-exception propagates out of &rsquo;thunk&rsquo;.  &rsquo;handler&rsquo; should take the same
-arguments as a guile catch handler (this is implemented using catch).
+&rsquo;thunk&rsquo; has finished.  This procedure calls &rsquo;await&rsquo; in the default
+glib main loop and will return the thunk&rsquo;s return value.  It is
+intended to be called in a waitable procedure invoked by a-sync.  If
+the optional &rsquo;handler&rsquo; argument is provided, then it will be run in
+the default glib main loop if &rsquo;thunk&rsquo; throws and its return value will
+be the return value of this procedure; otherwise the program will
+terminate if an unhandled exception propagates out of &rsquo;thunk&rsquo;.
+&rsquo;handler&rsquo; should take the same arguments as a guile catch handler
+(this is implemented using catch).
 </p>
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the default glib main loop runs, where the
@@ -150,6 +151,117 @@ that.
 			 (await-glib-task await resume
 					  (lambda ()
 					    (+ 1 1))))
+	  (g-main-loop-quit main-loop)))
+(g-main-loop-run main-loop)
+</pre></div>
+</dd></dl>
+
+<dl>
+<dt><a name="index-await_002dglib_002dgenerator_002din_002dthread"></a>Scheme Procedure: <strong>await-glib-generator-in-thread</strong> <em>await resume generator proc [handler]</em></dt>
+<dd><p>This is a convenience procedure for running generator procedures
+asynchronously.  The &rsquo;generator&rsquo; argument is a procedure taking one
+argument, namely a yield argument (see the documentation on the
+make-iterator procedure for further details).  This
+await-glib-generator-in-thread procedure will run &rsquo;generator&rsquo; in its
+own worker thread, and whenever &rsquo;generator&rsquo; yields a value it will
+cause &rsquo;proc&rsquo; to execute in the default glib main loop.
+</p>
+<p>&rsquo;proc&rsquo; should be a procedure taking a single argument, namely the
+value yielded by the generator.  If the optional &rsquo;handler&rsquo; argument is
+provided, then that handler will be run in the default glib main loop
+if &rsquo;generator&rsquo; throws; otherwise the program will terminate if an
+unhandled exception propagates out of &rsquo;generator&rsquo;.  &rsquo;handler&rsquo; should
+take the same arguments as a guile catch handler (this is implemented
+using catch).
+</p>
+<p>This procedure calls &rsquo;await&rsquo; and will return when the generator has
+finished or, if &rsquo;handler&rsquo; is provided, upon the generator throwing an
+exception.  This procedure will return #f if the generator completes
+normally, or &rsquo;guile-a-sync-thread-error if the generator throws an
+exception and &rsquo;handler&rsquo; is run.
+</p>
+<p>This procedure is intended to be called in a waitable procedure
+invoked by a-sync.  It must (like the a-sync procedure) be called in
+the same thread as that in which the event loop runs.  As mentioned
+above, the generator itself will run in its own thread.
+</p>
+<p>Exceptions may propagate out of this procedure if they arise while
+setting up (that is, before the worker thread starts), which shouldn&rsquo;t
+happen unless memory is exhausted or pthread has run out of resources.
+Exceptions arising during execution of the generator, if not caught by
+a handler procedure, will terminate the program.  Exceptions thrown by
+the handler procedure will propagate out of g-main-loop-run.
+</p>
+<p>This procedure is first available in version 0.9 of this library.
+</p>
+<p>This procedure uses g-idle-add: see the introductory remarks about
+that.
+</p>
+<p>Here is an example of the use of await-glib-generator-in-thread:
+</p><div class="example">
+<pre class="example">(define main-loop (g-main-loop-new #f #f))
+(a-sync (lambda (await resume)
+	  (await-glib-generator-in-thread await resume
+					  (lambda (yield)
+					    (let loop ((count 0))
+					      (when (&lt; count 5)
+						(yield (* 2 count))
+						(loop (1+ count)))))
+					  (lambda (val)
+					    (display val)
+					    (newline)))
+	  (g-main-loop-quit main-loop)))
+(g-main-loop-run main-loop)
+</pre></div>
+</dd></dl>
+
+<dl>
+<dt><a name="index-await_002dglib_002dgenerator"></a>Scheme Procedure: <strong>await-glib-generator</strong> <em>await resume generator proc</em></dt>
+<dd><p>This is a convenience procedure for running generator procedures
+asynchronously.  The &rsquo;generator&rsquo; argument is a procedure taking one
+argument, namely a yield argument (see the documentation on the
+make-iterator procedure for further details).  This
+await-glib-generator procedure will run &rsquo;generator&rsquo; in the default
+glib main loop, and whenever &rsquo;generator&rsquo; yields a value it will cause
+&rsquo;proc&rsquo; to execute in that event loop - each time &rsquo;proc&rsquo; runs it will
+do so as a separate event in the main loop and so be multi-plexed with
+other events.
+</p>
+<p>This procedure is intended to be called in a waitable procedure
+invoked by a-sync.  It is the single-threaded corollary of
+await-glib-generator-in-thread.  This means that (unlike with
+await-glib-generator-in-thread) while &rsquo;generator&rsquo; is running other
+events in the main loop will not make progress, so blocking calls
+(other than to the yield procedure) should not be made in
+&rsquo;generator&rsquo;.
+</p>
+<p>This procedure must (like the a-sync procedure) be called in the same
+thread as that in which the event loop runs.
+</p>
+<p>Exceptions may propagate out of this procedure if they arise while
+setting up (that is, before the task starts), which shouldn&rsquo;t happen
+unless memory is exhausted.  Exceptions arising during execution of
+the generator, if not caught locally, will propagate out of
+g-main-loop-run!.
+</p>
+<p>This procedure is first available in version 0.9 of this library.
+</p>
+<p>This procedure uses g-idle-add: see the introductory remarks about
+that.
+</p>
+<p>Here is an example of the use of await-glib-generator:
+</p><div class="example">
+<pre class="example">(define main-loop (g-main-loop-new #f #f))
+(a-sync (lambda (await resume)
+	  (await-glib-generator await resume
+				(lambda (yield)
+				  (let loop ((count 0))
+				    (when (&lt; count 5)
+				      (yield (* 2 count))
+				      (loop (1+ count)))))
+				(lambda (val)
+				  (display val)
+				  (newline)))
 	  (g-main-loop-quit main-loop)))
 (g-main-loop-run main-loop)
 </pre></div>

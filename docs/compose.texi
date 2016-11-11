@@ -73,7 +73,8 @@ to it.  The compose-a-sync macro will do it for you.
 (event-loop-run!)
 @end example
 
-The await-glib-task, await-glib-task-in-thread, await-glib-timeout and
+The await-glib-task, await-glib-task-in-thread, await-glib-generator,
+await-glib-generator-in-thread, await-glib-timeout and
 await-glib-getline procedures in the @ref{gnome glib,,(a-sync
 gnome-glib)} module also meet the 'compose-a-sync'-capable
 requirements.  Here is the same example using those procedures:

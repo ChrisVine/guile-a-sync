@@ -70,9 +70,11 @@
 ;; no-await macro can be used to generate a 'compose-a-sync'-capable
 ;; procedure for it (see below).
 ;;
-;; The await-glib-task, await-glib-task-in-thread, await-glib-timeout
-;; and await-glib-getline procedures in the (a-sync gnome-glib) module
-;; also meet the 'compose-a-sync'-capable requirements.
+;; The await-glib-task, await-glib-task-in-thread,
+;; await-glib-generator, await-glib-generator-in-thread,
+;; await-glib-timeout and await-glib-getline procedures in the (a-sync
+;; gnome-glib) module also meet the 'compose-a-sync'-capable
+;; requirements.
 ;;
 ;; Each binding is initialized as if sequentially (although it is done
 ;; asynchronously on the relevant event loop).  An initialization does
