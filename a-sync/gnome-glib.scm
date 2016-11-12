@@ -128,12 +128,12 @@
 		#f))
   (await))
 
-;; This is a convenience procedure for running generator procedures
-;; asynchronously.  The 'generator' argument is a procedure taking one
-;; argument, namely a yield argument (see the documentation on the
-;; make-iterator procedure for further details).  This
-;; await-glib-generator-in-thread procedure will run 'generator' in
-;; its own worker thread, and whenever 'generator' yields a value it
+;; This is a convenience procedure for acting asynchronously on values
+;; yielded by generator procedures.  The 'generator' argument is a
+;; procedure taking one argument, namely a yield argument (see the
+;; documentation on the make-iterator procedure for further details).
+;; This await-glib-generator-in-thread procedure will run 'generator'
+;; in its own worker thread, and whenever 'generator' yields a value
 ;; will cause 'proc' to execute in the default glib main loop.
 ;;
 ;; 'proc' should be a procedure taking a single argument, namely the
@@ -152,8 +152,9 @@
 ;;
 ;; This procedure is intended to be called in a waitable procedure
 ;; invoked by a-sync.  It must (like the a-sync procedure) be called
-;; in the same thread as that in which the event loop runs.  As
-;; mentioned above, the generator itself will run in its own thread.
+;; in the same thread as that in which the default glib main loop
+;; runs.  As mentioned above, the generator itself will run in its own
+;; thread.
 ;;
 ;; Exceptions may propagate out of this procedure if they arise while
 ;; setting up (that is, before the worker thread starts), which
@@ -201,15 +202,16 @@
       (next (await)))
      (else #f))))
 
-;; This is a convenience procedure for running generator procedures
-;; asynchronously.  The 'generator' argument is a procedure taking one
-;; argument, namely a yield argument (see the documentation on the
-;; make-iterator procedure for further details).  This
-;; await-glib-generator procedure will run 'generator' in the default
-;; glib main loop, and whenever 'generator' yields a value it will
-;; cause 'proc' to execute in that event loop - each time 'proc' runs
-;; it will do so as a separate event in the main loop and so be
-;; multi-plexed with other events.
+;; This is a convenience procedure for acting asynchronously on values
+;; yielded by generator procedures.  The 'generator' argument is a
+;; procedure taking one argument, namely a yield argument (see the
+;; documentation on the make-iterator procedure for further details).
+;; This await-glib-generator procedure will run 'generator', and
+;; whenever 'generator' yields a value will cause 'proc' to execute in
+;; the default glib main loop - each time 'proc' runs it will do so as
+;; a separate event in the main loop and so be multi-plexed with other
+;; events.  'proc' should be a procedure taking a single argument,
+;; namely the value yielded by the generator.
 ;;
 ;; This procedure is intended to be called in a waitable procedure
 ;; invoked by a-sync.  It is the single-threaded corollary of

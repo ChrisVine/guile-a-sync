@@ -158,12 +158,12 @@ that.
 
 <dl>
 <dt><a name="index-await_002dglib_002dgenerator_002din_002dthread"></a>Scheme Procedure: <strong>await-glib-generator-in-thread</strong> <em>await resume generator proc [handler]</em></dt>
-<dd><p>This is a convenience procedure for running generator procedures
-asynchronously.  The &rsquo;generator&rsquo; argument is a procedure taking one
-argument, namely a yield argument (see the documentation on the
-make-iterator procedure for further details).  This
-await-glib-generator-in-thread procedure will run &rsquo;generator&rsquo; in its
-own worker thread, and whenever &rsquo;generator&rsquo; yields a value it will
+<dd><p>This is a convenience procedure for acting asynchronously on values
+yielded by generator procedures.  The &rsquo;generator&rsquo; argument is a
+procedure taking one argument, namely a yield argument (see the
+documentation on the make-iterator procedure for further details).
+This await-glib-generator-in-thread procedure will run &rsquo;generator&rsquo; in
+its own worker thread, and whenever &rsquo;generator&rsquo; yields a value will
 cause &rsquo;proc&rsquo; to execute in the default glib main loop.
 </p>
 <p>&rsquo;proc&rsquo; should be a procedure taking a single argument, namely the
@@ -182,8 +182,8 @@ exception and &rsquo;handler&rsquo; is run.
 </p>
 <p>This procedure is intended to be called in a waitable procedure
 invoked by a-sync.  It must (like the a-sync procedure) be called in
-the same thread as that in which the event loop runs.  As mentioned
-above, the generator itself will run in its own thread.
+the same thread as that in which the default glib main loop runs.  As
+mentioned above, the generator itself will run in its own thread.
 </p>
 <p>Exceptions may propagate out of this procedure if they arise while
 setting up (that is, before the worker thread starts), which shouldn&rsquo;t
@@ -217,15 +217,16 @@ that.
 
 <dl>
 <dt><a name="index-await_002dglib_002dgenerator"></a>Scheme Procedure: <strong>await-glib-generator</strong> <em>await resume generator proc</em></dt>
-<dd><p>This is a convenience procedure for running generator procedures
-asynchronously.  The &rsquo;generator&rsquo; argument is a procedure taking one
-argument, namely a yield argument (see the documentation on the
-make-iterator procedure for further details).  This
-await-glib-generator procedure will run &rsquo;generator&rsquo; in the default
-glib main loop, and whenever &rsquo;generator&rsquo; yields a value it will cause
-&rsquo;proc&rsquo; to execute in that event loop - each time &rsquo;proc&rsquo; runs it will
-do so as a separate event in the main loop and so be multi-plexed with
-other events.
+<dd><p>This is a convenience procedure for acting asynchronously on values
+yielded by generator procedures.  The &rsquo;generator&rsquo; argument is a
+procedure taking one argument, namely a yield argument (see the
+documentation on the make-iterator procedure for further details).
+This await-glib-generator procedure will run &rsquo;generator&rsquo;, and whenever
+&rsquo;generator&rsquo; yields a value will cause &rsquo;proc&rsquo; to execute in the default
+glib main loop - each time &rsquo;proc&rsquo; runs it will do so as a separate
+event in the main loop and so be multi-plexed with other events.
+&rsquo;proc&rsquo; should be a procedure taking a single argument, namely the
+value yielded by the generator.
 </p>
 <p>This procedure is intended to be called in a waitable procedure
 invoked by a-sync.  It is the single-threaded corollary of
