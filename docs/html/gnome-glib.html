@@ -191,6 +191,8 @@ happen unless memory is exhausted or pthread has run out of resources.
 Exceptions arising during execution of the generator, if not caught by
 a handler procedure, will terminate the program.  Exceptions thrown by
 the handler procedure will propagate out of g-main-loop-run.
+Exceptions thrown by &rsquo;proc&rsquo;, if not caught locally, will also
+propagate out of g-main-loop-run!.
 </p>
 <p>This procedure is first available in version 0.9 of this library.
 </p>
@@ -243,7 +245,8 @@ thread as that in which the event loop runs.
 setting up (that is, before the task starts), which shouldn&rsquo;t happen
 unless memory is exhausted.  Exceptions arising during execution of
 the generator, if not caught locally, will propagate out of
-g-main-loop-run!.
+await-glib-generator.  Exceptions thrown by &rsquo;proc&rsquo;, if not caught
+locally, will propagate out of g-main-loop-run!.
 </p>
 <p>This procedure is first available in version 0.9 of this library.
 </p>

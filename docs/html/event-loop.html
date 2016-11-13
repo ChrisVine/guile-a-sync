@@ -557,6 +557,8 @@ happen unless memory is exhausted or pthread has run out of resources.
 Exceptions arising during execution of the generator, if not caught by
 a handler procedure, will terminate the program.  Exceptions thrown by
 the handler procedure will propagate out of event-loop-run!.
+Exceptions thrown by &rsquo;proc&rsquo;, if not caught locally, will also
+propagate out of event-loop-run!.
 </p>
 <p>This procedure is first available in version 0.9 of this library.
 </p>
@@ -625,6 +627,9 @@ setting up, which shouldn&rsquo;t happen unless memory is exhausted or
 pthread has run out of resources.  Exceptions arising during execution
 of the generator, if not caught locally, will propagate out of the
 event-loop-run! procedure called for the &rsquo;worker&rsquo; event loop.
+Exceptions arising during the execution of &rsquo;proc&rsquo;, if not caught
+locally, will propagate out of the event-loop-run! procedure called
+for the &rsquo;waiter&rsquo; or default event loop (as the case may be).
 </p>
 <p>This procedure is first available in version 0.9 of this library.
 </p>
@@ -694,7 +699,8 @@ about that.
 setting up (that is, before the task starts), which shouldn&rsquo;t happen
 unless memory is exhausted.  Exceptions arising during execution of
 the generator, if not caught locally, will propagate out of
-event-loop-run!.
+await-generator!.  Exceptions thrown by &rsquo;proc&rsquo;, if not caught locally,
+will propagate out of event-loop-run!.
 </p>
 <p>This procedure is first available in version 0.9 of this library.
 </p>
@@ -942,7 +948,8 @@ thread as that in which the event loop runs.
 setting up (that is, before the first call to &rsquo;await&rsquo; is made), which
 shouldn&rsquo;t happen unless memory is exhausted.  Subsequent exceptions
 (say, because of port or conversion errors) will propagate out of
-event-loop-run!.
+event-loop-run!.  Exceptions thrown by &rsquo;proc&rsquo;, if not caught locally,
+will also propagate out of event-loop-run!.
 </p>
 <p>This procedure is available from version 0.3.  From version 0.6, the
 bytes comprising the input text will be converted to their string
@@ -1017,7 +1024,8 @@ thread as that in which the event loop runs.
 setting up (that is, before the first call to &rsquo;await&rsquo; is made), which
 shouldn&rsquo;t happen unless memory is exhausted.  Subsequent exceptions
 (say, because of port or conversion errors) will propagate out of
-event-loop-run!.
+event-loop-run!.  Exceptions thrown by &rsquo;proc&rsquo;, if not caught locally,
+will also propagate out of event-loop-run!.
 </p>
 <p>This procedure is available from version 0.4.  From version 0.6, the
 bytes comprising the input text will be converted to their string
