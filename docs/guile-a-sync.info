@@ -850,7 +850,9 @@ situation is retained by user code.
      finished or, if 'handler' is provided, upon the generator throwing
      an exception.  This procedure will return #f if the generator
      completes normally, or 'guile-a-sync-thread-error if the generator
-     throws an exception and 'handler' is run.
+     throws an exception and 'handler' is run (the
+     'guile-a-sync-thread-error symbol is reserved to the implementation
+     and should not be yielded by the generator).
 
      This procedure is intended to be called in a waitable procedure
      invoked by a-sync.  It will normally be necessary to call
@@ -888,7 +890,7 @@ situation is retained by user code.
           					(display val)
           					(newline)))
           	  (event-loop-block! #f)))
-          (event-loop-block! #t) ;; because the task runs in another thread
+          (event-loop-block! #t) ;; because the generator runs in another thread
           (event-loop-run!)
 
  -- Scheme Procedure: await-generator-in-event-loop! await resume
@@ -1541,7 +1543,9 @@ module, so as not to create a hard dependency on guile-gnome.
      finished or, if 'handler' is provided, upon the generator throwing
      an exception.  This procedure will return #f if the generator
      completes normally, or 'guile-a-sync-thread-error if the generator
-     throws an exception and 'handler' is run.
+     throws an exception and 'handler' is run (the
+     'guile-a-sync-thread-error symbol is reserved to the implementation
+     and should not be yielded by the generator).
 
      This procedure is intended to be called in a waitable procedure
      invoked by a-sync.  It must (like the a-sync procedure) be called
@@ -2017,8 +2021,8 @@ Tag Table:
 Node: Top85
 Node: coroutines1103
 Node: event loop18836
-Node: monotonic time72488
-Node: gnome glib73922
-Node: compose97854
+Node: monotonic time72620
+Node: gnome glib74054
+Node: compose98113
 
 End Tag Table

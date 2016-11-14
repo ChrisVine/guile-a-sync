@@ -148,7 +148,9 @@
 ;; finished or, if 'handler' is provided, upon the generator throwing
 ;; an exception.  This procedure will return #f if the generator
 ;; completes normally, or 'guile-a-sync-thread-error if the generator
-;; throws an exception and 'handler' is run.
+;; throws an exception and 'handler' is run (the
+;; 'guile-a-sync-thread-error symbol is reserved to the implementation
+;; and should not be yielded by the generator).
 ;;
 ;; This procedure is intended to be called in a waitable procedure
 ;; invoked by a-sync.  It must (like the a-sync procedure) be called
@@ -196,12 +198,13 @@
 	       (next (iter))))))))
   (let next ((res (await)))
     (cond
+     ((eq? res 'stop-iteration)
+      #f)
      ((eq? res 'guile-a-sync-thread-error)
       'guile-a-sync-thread-error)
-     ((not (eq? res 'stop-iteration))
+     (else 
       (proc res)
-      (next (await)))
-     (else #f))))
+      (next (await))))))
 
 ;; This is a convenience procedure for acting asynchronously on values
 ;; yielded by generator procedures.  The 'generator' argument is a
