@@ -154,4 +154,22 @@ AC_DEFUN([AC_CHECK_GUILE_SITEDIR],
   fi
   AC_SUBST(GUILE20_SITEDIR)
 ])
-  
+
+AC_DEFUN([AC_CHECK_GUILE_OBJDIR],
+[
+  if test -z "$PKG_CONFIG"; then
+    AC_PATH_PROG(PKG_CONFIG, pkg-config, no)
+  fi
+  if test "$PKG_CONFIG" = "no" ; then
+    echo "*** The pkg-config script could not be found. Make sure it is"
+    echo "*** in your path, or set the PKG_CONFIG environment variable"
+    echo "*** to the full path to pkg-config."
+    echo "*** Or see http://www.freedesktop.org/software/pkgconfig to get pkg-config."
+  else
+    AC_MSG_CHECKING([guile-2.0 object file directory])
+    guile_a_sync_libdir=`$PKG_CONFIG guile-2.0 --variable=libdir`
+    GUILE20_OBJDIR=$guile_a_sync_libdir/guile/2.0/site-ccache
+    AC_MSG_RESULT([$GUILE20_OBJDIR])
+  fi
+  AC_SUBST(GUILE20_OBJDIR)
+])
