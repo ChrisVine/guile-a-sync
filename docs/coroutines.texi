@@ -1,4 +1,4 @@
-@node coroutines,event loop,Top,Top
+@node coroutines,event loop,overview,Top
 
 The (a-sync coroutines) module provides the following procedures:
 
@@ -378,4 +378,7 @@ or this, to loop asynchronously with a series of results:
 The a-sync procedure can be used with any event loop, including the
 glib event loop provided by guile-gnome and so with gtk+ callbacks,
 and with the event loop in the event-loop module.
+
+For a further overview of the operation of 'a-sync', see the
+@ref{overview,,general overview}
 @end deffn
