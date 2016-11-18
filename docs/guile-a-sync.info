@@ -13,10 +13,12 @@ event loop for guile-2.0, and coroutines to enable an event loop
 with 'await' semantics to deal with inversion of control - otherwise
 known as "callback hell".
 
-   The documentation for the guile-a-sync library comprises six pages:
 * Menu:
 
+General overview
 * overview::       General overview of the operation of the library
+
+Modules
 * coroutines::     (a-sync coroutines) module - provides coroutines for await semantics on asynchronous events
 * event loop::     (a-sync event-loop) module - provides an event loop for asynchronous events
 * monotonic time:: (a-sync monotonic-time) module - enables monotonic time to be used for timeouts
@@ -32,14 +34,14 @@ File: guile-a-sync.info,  Node: overview,  Next: coroutines,  Prev: Top
 hell", but it can still be troublesome to think about.  It can help to
 compare it to threads.
 
-   Each 'a-sync' block (see *note (a-sync coroutines): coroutines. or
-'compose-a-sync' block (see *note (a-sync compose): compose. is a
+   Each 'a-sync' block (see *note (a-sync coroutines): coroutines.) or
+'compose-a-sync' block (see *note (a-sync compose): compose.) is a
 separate unit of computation, which appears within itself to proceed
 sequentially even though in fact it executes asynchronously on an event
 loop.  Each such block also appears to execute concurrently with other
-'a-sync' or 'compose-a-sync' blocks using the same event loop.  Each
-'a-sync' or 'compose-a-sync' block is therefore in some sense analogous
-to a thread of execution.
+'a-sync' or 'compose-a-sync' blocks running on the same event loop.
+Each 'a-sync' or 'compose-a-sync' block is therefore in some sense
+analogous to a thread of execution.
 
    If the event loop provided by the *note (a-sync event-loop): event
 loop. module is in use, the mechanism by which these "psuedo-threads"
@@ -73,7 +75,7 @@ timeout expires):
 
    Apart from joining on event-loop-run!, there is no built in
 abstraction for two "pseudo-threads" (that is two 'a-sync' or
-'compose-a-sync' blocks) running in the same event loop to
+'compose-a-sync' blocks) running on the same event loop to
 intercommunicate.  This can be done using shared data (helped by the
 fact that all the mutation would be carried out in the same native OS
 thread, the event-loop thread), but at present it is messy.  Instead of
@@ -2087,11 +2089,11 @@ coroutines. module.
 
 Tag Table:
 Node: Top85
-Node: overview1168
-Node: coroutines4100
-Node: event loop21944
-Node: monotonic time75728
-Node: gnome glib77162
-Node: compose101221
+Node: overview1123
+Node: coroutines4061
+Node: event loop21905
+Node: monotonic time75689
+Node: gnome glib77123
+Node: compose101182
 
 End Tag Table
