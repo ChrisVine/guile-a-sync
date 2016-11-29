@@ -232,9 +232,9 @@ buffer flush, and if the size of the buffer is greater than the number
 of characters that the file can receive without blocking, blocking
 might still occur.  Unless the port will carry out a partial flush in
 such a case, this procedure will therefore generally work best with
-unbuffered ports (say by using the open-file or fdopen procedure with
-the &rsquo;0&rsquo; mode option or the R6RS open-file-input-port procedure with a
-buffer-mode of none, or by calling setvbuf).
+unbuffered ports (say by using the open-file, fdopen or duplicate-port
+procedure with the &rsquo;0&rsquo; mode option or the R6RS open-file-input-port
+procedure with a buffer-mode of none, or by calling setvbuf).
 </p>
 <p>This procedure should not throw an exception unless memory is
 exhausted.  If &rsquo;proc&rsquo; throws, say because of port errors, and the
@@ -1097,6 +1097,110 @@ called in the same thread as that in which the event loop runs.
 exhausted.  If &rsquo;proc&rsquo; throws, say because of port errors, and the
 exception is not caught locally, it will propagate out of
 event-loop-run!.
+</p>
+<p>As an example of how to use a-sync-write-watch!, here is the
+implementation of await-put-string!:
+</p><div class="example">
+<pre class="example">(define await-put-string! 
+  (case-lambda
+    ((await resume port text) (await-put-string! await resume #f port text))
+    ((await resume loop port text)
+     (define length (string-length text))
+     (define index 0)
+     (define bv
+       (let ((encoding (or (port-encoding port)
+       			   (fluid-ref %default-port-encoding)
+			   &quot;ISO-8859-1&quot;))
+	     (conversion-strategy (port-conversion-strategy port)))
+	 (iconv:string-&gt;bytevector text encoding conversion-strategy)))
+     (a-sync-write-watch! resume
+			  port
+			  (lambda (status)
+			    (if (eq? status 'excpt)
+				#f
+				(catch 'system-error
+				  (lambda ()
+				    (let next ()
+				      (if (= index length)
+					  #t
+					  (begin
+					    (put-u8 port (bytevector-u8-ref bv index))
+					    (set! index (1+ index))
+					    (next)))))
+				  (lambda args
+				    (if (or (= EAGAIN (system-error-errno args))
+					    (and (defined? 'EWOULDBLOCK) 
+						 (= EWOULDBLOCK (system-error-errno args))))
+					'more
+					(apply throw args))))))
+			  loop)
+     (let next ((res (await)))
+       (if (eq? res 'more)
+	   (next (await))
+	   (begin
+	     (event-loop-remove-write-watch! port loop)
+	     res))))))
+</pre></div>
+</dd></dl>
+
+<dl>
+<dt><a name="index-await_002dput_002dstring_0021"></a>Scheme Procedure: <strong>await-put-string!</strong> <em>await resume [loop] port text</em></dt>
+<dd><p>This is a convenience procedure for use in an event loop, which will
+start a write watch on &rsquo;port&rsquo; for writing a string to the port.  It
+calls &rsquo;await&rsquo; while waiting for output to become available.  Provided
+&rsquo;port&rsquo; is a non-blocking port, the event loop will not be blocked by
+this procedure even if only individual characters can be written at
+any one time.  It is intended to be called in a waitable procedure
+invoked by a-sync, and this procedure is implemented using
+a-sync-write-watch!.  If an exceptional condition (&rsquo;excpt) is
+encountered, #f will be returned, otherwise #t will be returned (but
+an exceptional condition should never be encountered on an output
+port).  The &rsquo;loop&rsquo; argument is optional: this procedure operates on
+the event loop passed in as an argument, or if none is passed (or #f
+is passed), on the default event loop.
+</p>
+<p>&rsquo;port&rsquo; must be a non-blocking port, or this procedure may block the
+event loop when writing.  It can be made non-blocking with this:
+</p>
+<div class="example">
+<pre class="example">(fcntl [port] F_SETFL (logior O_NONBLOCK
+                      (fcntl [port] F_GETFL)))
+</pre></div>
+
+<p>In addition, it should be unbuffered (say by using the open-file,
+fdopen or duplicate-port procedure with the &rsquo;0&rsquo; mode option, or by
+calling setvbuf), or any buffer flushing operation may also block.  In
+consequence, if a lot of text is to be passed, it may be worth
+checking whether using conventional buffered blocking output in a task
+started by await-task-in-thread!  or await-task-in-event-loop! offers
+better performance.
+</p>
+<p>This procedure must (like the a-sync procedure) be called in the same
+thread as that in which the event loop runs.
+</p>
+<p>Exceptions may propagate out of this procedure if they arise while
+setting up (that is, before the first call to &rsquo;await&rsquo; is made), which
+shouldn&rsquo;t happen unless memory is exhausted or a conversion error is
+encountered.  Subsequent exceptions (say, because of port errors) will
+propagate out of event-loop-run!.
+</p>
+<p>The bytes to be sent will be converted from the passed in string
+representation using the encoding of &rsquo;port&rsquo; if a port encoding has
+been set, or otherwise using the program&rsquo;s default port encoding, or
+if neither has been set using iso-8859-1 (Latin-1).  Exceptions from
+conversion errors will propagate out of this procedure when setting up
+if conversion fails and a conversion strategy of &rsquo;error is in effect.
+This procedure uses the conversion strategy for &rsquo;port&rsquo; (which defaults
+at program start-up to &rsquo;substitute).
+</p>
+<p>If CR-LF line endings are to be written when outputting the string,
+the &rsquo;\r&rsquo; character (as well as the &rsquo;\n&rsquo; character) must be embedded in
+the string.
+</p>
+<p>This procedure is first available in version 0.10 of this library.
+</p>
+<p>An example of the use of this procedure can be found in the
+example-socket.scm file in the docs directory.
 </p></dd></dl>
 
 <p>The (a-sync event-loop) module also loads the <a href="monotonic-time.html#monotonic-time">(a-sync monotonic-time)</a> module.

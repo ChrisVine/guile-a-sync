@@ -23,8 +23,8 @@
   #:use-module (rnrs bytevectors)      ;; for make-bytevector, bytevector-copy!
   #:use-module (rnrs hashtables)       ;; for make-eqv-hashtable, etc
   #:use-module (rnrs io ports)         ;; for get-u8
-  #:use-module ((ice-9 iconv)          ;; for bytevector->string (guile-2.0 does not provide it in rnrs)
-		#:select (bytevector->string)
+  #:use-module ((ice-9 iconv)          ;; (guile-2.0 does not provide the selected procedures in rnrs)
+		#:select (bytevector->string string->bytevector)
 		#:renamer (symbol-prefix-proc 'iconv:))
   #:use-module (a-sync monotonic-time) ;; for get-time
   #:use-module (a-sync coroutines)     ;; for make-iterator
@@ -54,7 +54,8 @@
 	    a-sync-write-watch!
 	    await-getline!
 	    await-geteveryline!
-	    await-getsomelines!))
+	    await-getsomelines!
+	    await-put-string!))
 
 
 ;; this variable is not exported - use the accessors below
@@ -560,9 +561,9 @@
 ;; blocking might still occur.  Unless the port will carry out a
 ;; partial flush in such a case, this procedure will therefore
 ;; generally work best with unbuffered ports (say by using the
-;; open-file or fdopen procedure with the '0' mode option or the R6RS
-;; open-file-input-port procedure with a buffer-mode of none, or by
-;; calling setvbuf).
+;; open-file, fdopen or duplicate-port procedure with the '0' mode
+;; option or the R6RS open-file-input-port procedure with a
+;; buffer-mode of none, or by calling setvbuf).
 ;;
 ;; This procedure should not throw an exception unless memory is
 ;; exhausted.  If 'proc' throws, say because of port errors, and the
@@ -1756,3 +1757,93 @@
 				 (resume (proc status))
 				 #t)
 			       loop))
+
+;; This is a convenience procedure whose signature is:
+;;
+;;   (await-put-string! await resume [loop] port text)
+;;
+;; This procedure will start a write watch on 'port' for writing a
+;; string to the port.  It calls 'await' while waiting for output to
+;; become available.  Provided 'port' is a non-blocking port, the
+;; event loop will not be blocked by this procedure even if only
+;; individual characters can be written at any one time.  It is
+;; intended to be called in a waitable procedure invoked by a-sync,
+;; and this procedure is implemented using a-sync-write-watch!.  If an
+;; exceptional condition ('excpt) is encountered, #f will be returned,
+;; otherwise #t will be returned (but an exceptional condition should
+;; never be encountered on an output port).  The 'loop' argument is
+;; optional: this procedure operates on the event loop passed in as an
+;; argument, or if none is passed (or #f is passed), on the default
+;; event loop.
+;;
+;; 'port' must be a non-blocking port, or this procedure may block the
+;; event loop when writing.  In addition, it should be unbuffered (say
+;; by using the open-file, fdopen or duplicate-port procedure with the
+;; '0' mode option, or by calling setvbuf), or any buffer flushing
+;; operation may also block.  In consequence, if a lot of text is to
+;; be passed, it may be worth checking whether using conventional
+;; buffered blocking output in a task started by await-task-in-thread!
+;; or await-task-in-event-loop! offers better performance.
+;;
+;; This procedure must (like the a-sync procedure) be called in the
+;; same thread as that in which the event loop runs.
+;;
+;; Exceptions may propagate out of this procedure if they arise while
+;; setting up (that is, before the first call to 'await' is made),
+;; which shouldn't happen unless memory is exhausted or a conversion
+;; error is encountered.  Subsequent exceptions (say, because of port
+;; errors) will propagate out of event-loop-run!.
+;;
+;; The bytes to be sent will be converted from the passed in string
+;; representation using the encoding of 'port' if a port encoding has
+;; been set, or otherwise using the program's default port encoding,
+;; or if neither has been set using iso-8859-1 (Latin-1).  Exceptions
+;; from conversion errors will propagate out of this procedure when
+;; setting up if conversion fails and a conversion strategy of 'error
+;; is in effect.  This procedure uses the conversion strategy for
+;; 'port' (which defaults at program start-up to 'substitute).
+;;
+;; If CR-LF line endings are to be written when outputting the string,
+;; the '\r' character (as well as the '\n' character) must be embedded
+;; in the string.
+;;
+;; This procedure is first available in version 0.10 of this library.
+(define await-put-string! 
+  (case-lambda
+    ((await resume port text) (await-put-string! await resume #f port text))
+    ((await resume loop port text)
+     (define length (string-length text))
+     (define index 0)
+     (define bv
+       (let ((encoding (or (port-encoding port)
+			   (fluid-ref %default-port-encoding)
+			   "ISO-8859-1"))
+	     (conversion-strategy (port-conversion-strategy port)))
+	 (iconv:string->bytevector text encoding conversion-strategy)))
+     (a-sync-write-watch! resume
+			  port
+			  (lambda (status)
+			    (if (eq? status 'excpt)
+				#f
+				(catch 'system-error
+				  (lambda ()
+				    (let next ()
+				      (if (= index length)
+					  #t
+					  (begin
+					    (put-u8 port (bytevector-u8-ref bv index))
+					    (set! index (1+ index))
+					    (next)))))
+				  (lambda args
+				    (if (or (= EAGAIN (system-error-errno args))
+					    (and (defined? 'EWOULDBLOCK) 
+						 (= EWOULDBLOCK (system-error-errno args))))
+					'more
+					(apply throw args))))))
+			  loop)
+     (let next ((res (await)))
+       (if (eq? res 'more)
+	   (next (await))
+	   (begin
+	     (event-loop-remove-write-watch! port loop)
+	     res))))))
