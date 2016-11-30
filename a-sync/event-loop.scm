@@ -18,6 +18,7 @@
   #:use-module (ice-9 q)               ;; for make-q, etc
   #:use-module (ice-9 match)
   #:use-module (ice-9 threads)         ;; for with-mutex and call-with-new-thread
+  #:use-module (ice-9 control)         ;; for call/ec
   #:use-module (srfi srfi-1)           ;; for reduce, delete!, member and delete-duplicates
   #:use-module (srfi srfi-9)
   #:use-module (rnrs bytevectors)      ;; for make-bytevector, bytevector-copy!, bytevector-u8-ref
@@ -1745,9 +1746,7 @@
 			     (not res))
 			 res)
 			(else
-			 ;; we could use call/ec, but that means disallowing
-			 ;; use of guile earlier than 2.0.8
-			 (call/cc
+			 (call/ec
 			  (lambda (k)
 			    (proc res k)
 			    (next (await)))))))))
