@@ -62,19 +62,19 @@
 ;; further arguments as it requires.  All of the await-task!,
 ;; await-task-in-thread!, await-task-in-event-loop!, await-generator!,
 ;; await-generator-in-thread!, await-generator-in-event-loop!,
-;; await-timeout!, await-getline!, await-geteveryline! and
-;; await-getsomelines! procedures provided by the (a-sync event-loop)
-;; module are 'compose-a-sync'-capable.  In addition, to make an
-;; ordinary body of code which does not block (and which does not need
-;; to invoke a-sync's await procedure) usable by compose-a-sync, the
-;; no-await macro can be used to generate a 'compose-a-sync'-capable
-;; procedure for it (see below).
+;; await-timeout!, await-getline!, await-geteveryline!,
+;; await-getsomelines! and await-put-string! procedures provided by
+;; the (a-sync event-loop) module are 'compose-a-sync'-capable.  In
+;; addition, to make an ordinary body of code which does not block
+;; (and which does not need to invoke a-sync's await procedure) usable
+;; by compose-a-sync, the no-await macro can be used to generate a
+;; 'compose-a-sync'-capable procedure for it (see below).
 ;;
 ;; The await-glib-task, await-glib-task-in-thread,
 ;; await-glib-generator, await-glib-generator-in-thread,
-;; await-glib-timeout and await-glib-getline procedures in the (a-sync
-;; gnome-glib) module also meet the 'compose-a-sync'-capable
-;; requirements.
+;; await-glib-timeout, await-glib-getline and await-glib-put-string
+;; procedures in the (a-sync gnome-glib) module also meet the
+;; 'compose-a-sync'-capable requirements.
 ;;
 ;; Each binding is initialized as if sequentially (although it is done
 ;; asynchronously on the relevant event loop).  An initialization does

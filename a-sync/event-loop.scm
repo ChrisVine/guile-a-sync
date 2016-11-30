@@ -20,9 +20,9 @@
   #:use-module (ice-9 threads)         ;; for with-mutex and call-with-new-thread
   #:use-module (srfi srfi-1)           ;; for reduce, delete!, member and delete-duplicates
   #:use-module (srfi srfi-9)
-  #:use-module (rnrs bytevectors)      ;; for make-bytevector, bytevector-copy!
+  #:use-module (rnrs bytevectors)      ;; for make-bytevector, bytevector-copy!, bytevector-u8-ref
   #:use-module (rnrs hashtables)       ;; for make-eqv-hashtable, etc
-  #:use-module (rnrs io ports)         ;; for get-u8
+  #:use-module (rnrs io ports)         ;; for get-u8 and put-u8
   #:use-module ((ice-9 iconv)          ;; (guile-2.0 does not provide the selected procedures in rnrs)
 		#:select (bytevector->string string->bytevector)
 		#:renamer (symbol-prefix-proc 'iconv:))
