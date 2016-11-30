@@ -378,7 +378,7 @@
 					      #f)))
 			  (if action
 			      (when (not (action 'in))
-				(_remove-read-watch-impl! elt el))
+				(with-mutex mutex (_remove-read-watch-impl! elt el)))
 			      (error "No action in event loop for read file: " elt))))
 		      (delv event-fd (car res)))
 	    (for-each (lambda (elt)
@@ -388,7 +388,7 @@
 					      #f)))
 			  (if action
 			      (when (not (action 'out))
-				(_remove-write-watch-impl! elt el))
+				(with-mutex mutex (_remove-write-watch-impl! elt el)))
 			      (error "No action in event loop for write file: " elt))))
 		      (cadr res))
 	    (for-each (lambda (elt)
@@ -402,8 +402,9 @@
 			  (if action
 			      (when (not (action 'excpt))
 				(if (member elt read-files _file-equal?)
-				    (_remove-read-watch-impl! elt el)
-				    (_remove-write-watch-impl! elt el)))
+				    (with-mutex mutex 
+				      (_remove-read-watch-impl! elt el)
+				      (_remove-write-watch-impl! elt el))))
 			      (error "No action in event loop for file: " elt))))
 		      (caddr res))
 	    ;; the strategy with posted events is first to empty the
