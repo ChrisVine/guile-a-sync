@@ -267,25 +267,21 @@
 	(fd2 (_fd-or-port->fd file2)))
     (= fd1 fd2)))
 
-;; we don't need any mutexes here as we only access any of the
-;; read-files, read-files-actions, write-files and write-files-actions
-;; fields in the event loop thread.  This removes a given read file
-;; watch and its action from an event loop object.  A file descriptor
-;; and a port with the same underlying file descriptor, or two ports
-;; with the same underlying file descriptor, compare equal for the
-;; purposes of removal.
+;; This should be called holding the event loop mutex.  This removes a
+;; given read file watch and its action from an event loop object.  A
+;; file descriptor and a port with the same underlying file
+;; descriptor, or two ports with the same underlying file descriptor,
+;; compare equal for the purposes of removal.
 (define (_remove-read-watch-impl! file el)
   (_read-files-set! el (delete! file (_read-files-get el) _file-equal?))
   (hashtable-delete! (_read-files-actions-get el)
 		     (_fd-or-port->fd file)))
 
-;; we don't need any mutexes here as we only access any of the
-;; read-files, read-files-actions, write-files and write-files-actions
-;; fields in the event loop thread.  This removes a given write file
-;; watch and its action from an event loop object.  A file descriptor
-;; and a port with the same underlying file descriptor, or two ports
-;; with the same underlying file descriptor, compare equal for the
-;; purposes of removal.
+;; This should be called holding the event loop mutex.  This removes a
+;; given write file watch and its action from an event loop object.  A
+;; file descriptor and a port with the same underlying file
+;; descriptor, or two ports with the same underlying file descriptor,
+;; compare equal for the purposes of removal.
 (define (_remove-write-watch-impl! file el)
   (_write-files-set! el (delete! file (_write-files-get el) _file-equal?))
   (hashtable-delete! (_write-files-actions-get el)
