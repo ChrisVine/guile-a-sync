@@ -17,7 +17,7 @@
 (use-modules (a-sync coroutines)
 	     (a-sync event-loop)
 	     (a-sync compose)
-	     (ice-9 rdelim) ;; for write-line
+	     (ice-9 rdelim) ;; for write-line and read-string
 	     (rnrs base))   ;; for assert
 
 ;; helpers
@@ -352,40 +352,32 @@
   (test-result 2 count)
   (print-result))
 
-;; Test 15: a-sync-write-watch!
+;; Test 15: await-put-string! (also tests a-sync-write-watch!)
 
 (let ()
   (define test-pipe (pipe))
   (define in (car test-pipe))
   (define out (cdr test-pipe))
-  (define count 0)
+  (define res #f)
+  (setvbuf out _IONBF)
+  (fcntl out F_SETFL (logior O_NONBLOCK
+			     (fcntl out F_GETFL)))
   (a-sync (lambda (await resume)
-	    (a-sync-write-watch! resume out
-				 (lambda (status)
-				   (test-result 'out status)
-				   (if (< count 3)
-				       (begin
-					 (set! count (1+ count))
-					 (write-char #\a out)
-					 (force-output out)
-					 'more)
-				       (begin
-					 (write-char #\x out)
-					 (force-output out)
-					 (event-loop-remove-write-watch! out main-loop)
-					 'done)))
-				 main-loop)
-	    (let loop ((res (await)))
-	      (let ((ch (read-char in)))
-		(if (not (char=? ch #\x))
-		    (begin
-		      (test-result 'more res)
-		      (test-result #\a ch)
-		      (loop (await)))
-		    (test-result 'done res))))
-	    (test-result 3 count)
-	    (print-result)))
-  (event-loop-run! main-loop))
+	    (a-sync (lambda (await resume)
+		      (set! res (await-task-in-thread! await resume main-loop
+						       (lambda ()
+							 (read-string in))))
+		      (event-loop-block! #f main-loop)))
+	    (await-put-string! await resume main-loop out (string #\a #\b #\c))
+	    (close-port out)))
+  (event-loop-block! #t main-loop)
+  (event-loop-run! main-loop)
+  (test-result (string-length res) 3)
+  (test-result (string-ref res 0) #\a)
+  (test-result (string-ref res 1) #\b)
+  (test-result (string-ref res 2) #\c)
+  (close-port in)
+  (print-result))
 
 ;; Test 16: compose-a-sync and no-await
 
@@ -754,39 +746,32 @@
   (test-result 2 count)
   (print-result))
 
-;; Test 33: a-sync-write-watch!
+;; Test 33: await-put-string! (also tests a-sync-write-watch!)
 
 (let ()
   (define test-pipe (pipe))
   (define in (car test-pipe))
   (define out (cdr test-pipe))
-  (define count 0)
+  (define res #f)
+  (setvbuf out _IONBF)
+  (fcntl out F_SETFL (logior O_NONBLOCK
+			     (fcntl out F_GETFL)))
   (a-sync (lambda (await resume)
-	    (a-sync-write-watch! resume out
-				 (lambda (status)
-				   (test-result 'out status)
-				   (if (< count 3)
-				       (begin
-					 (set! count (1+ count))
-					 (write-char #\a out)
-					 (force-output out)
-					 'more)
-				       (begin
-					 (write-char #\x out)
-					 (force-output out)
-					 (event-loop-remove-write-watch! out)
-					 'done))))
-	    (let loop ((res (await)))
-	      (let ((ch (read-char in)))
-		(if (not (char=? ch #\x))
-		    (begin
-		      (test-result 'more res)
-		      (test-result #\a ch)
-		      (loop (await)))
-		    (test-result 'done res))))
-	    (test-result 3 count)
-	    (print-result)))
-  (event-loop-run!))
+	    (a-sync (lambda (await resume)
+		      (set! res (await-task-in-thread! await resume
+						       (lambda ()
+							 (read-string in))))
+		      (event-loop-block! #f)))
+	    (await-put-string! await resume out (string #\a #\b #\c))
+	    (close-port out)))
+  (event-loop-block! #t)
+  (event-loop-run!)
+  (test-result (string-length res) 3)
+  (test-result (string-ref res 0) #\a)
+  (test-result (string-ref res 1) #\b)
+  (test-result (string-ref res 2) #\c)
+  (close-port in)
+  (print-result))
 
 ;; Test 34: compose-a-sync and no-await
 
