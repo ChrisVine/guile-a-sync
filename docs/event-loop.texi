@@ -133,9 +133,7 @@ to this watch should usually exhaust the buffer by calling drain-input
 or by looping on char-ready?).
 
 This procedure should not throw an exception unless memory is
-exhausted.  If 'proc' throws, say because of port errors, and the
-exception is not caught locally, it will propagate out of
-event-loop-run!.
+exhausted.
 @end deffn
 
 @deffn {Scheme Procedure} event-loop-add-write-watch! file proc [loop]
@@ -176,9 +174,7 @@ procedure with the '0' mode option or the R6RS open-file-input-port
 procedure with a buffer-mode of none, or by calling setvbuf).
 
 This procedure should not throw an exception unless memory is
-exhausted.  If 'proc' throws, say because of port errors, and the
-exception is not caught locally, it will propagate out of
-event-loop-run!.
+exhausted.
 @end deffn
 
 @deffn {Scheme Procedure} event-loop-remove-read-watch! file [loop]

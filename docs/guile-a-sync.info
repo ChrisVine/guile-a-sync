@@ -598,9 +598,7 @@ situation is retained by user code.
      looping on char-ready?).
 
      This procedure should not throw an exception unless memory is
-     exhausted.  If 'proc' throws, say because of port errors, and the
-     exception is not caught locally, it will propagate out of
-     event-loop-run!.
+     exhausted.
 
  -- Scheme Procedure: event-loop-add-write-watch! file proc [loop]
      The 'loop' (event loop) argument is optional.  This procedure will
@@ -642,9 +640,7 @@ situation is retained by user code.
      buffer-mode of none, or by calling setvbuf).
 
      This procedure should not throw an exception unless memory is
-     exhausted.  If 'proc' throws, say because of port errors, and the
-     exception is not caught locally, it will propagate out of
-     event-loop-run!.
+     exhausted.
 
  -- Scheme Procedure: event-loop-remove-read-watch! file [loop]
      The 'loop' (event loop) argument is optional.  This procedure will
@@ -2271,8 +2267,8 @@ Node: Top85
 Node: overview1123
 Node: coroutines4061
 Node: event loop22012
-Node: monotonic time80560
-Node: gnome glib81994
-Node: compose109812
+Node: monotonic time80280
+Node: gnome glib81714
+Node: compose109532
 
 End Tag Table

@@ -193,9 +193,7 @@ to this watch should usually exhaust the buffer by calling drain-input
 or by looping on char-ready?).
 </p>
 <p>This procedure should not throw an exception unless memory is
-exhausted.  If &rsquo;proc&rsquo; throws, say because of port errors, and the
-exception is not caught locally, it will propagate out of
-event-loop-run!.
+exhausted.
 </p></dd></dl>
 
 <dl>
@@ -237,9 +235,7 @@ procedure with the &rsquo;0&rsquo; mode option or the R6RS open-file-input-port
 procedure with a buffer-mode of none, or by calling setvbuf).
 </p>
 <p>This procedure should not throw an exception unless memory is
-exhausted.  If &rsquo;proc&rsquo; throws, say because of port errors, and the
-exception is not caught locally, it will propagate out of
-event-loop-run!.
+exhausted.
 </p></dd></dl>
 
 <dl>
