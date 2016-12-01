@@ -1843,7 +1843,6 @@
   (case-lambda
     ((await resume port text) (await-put-string! await resume #f port text))
     ((await resume loop port text)
-     (define length (string-length text))
      (define index 0)
      (define bv
        (let ((encoding (or (port-encoding port)
@@ -1851,6 +1850,7 @@
 			   "ISO-8859-1"))
 	     (conversion-strategy (port-conversion-strategy port)))
 	 (iconv:string->bytevector text encoding conversion-strategy)))
+     (define length (bytevector-length bv))
      (a-sync-write-watch! resume
 			  port
 			  (lambda (status)

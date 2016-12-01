@@ -1485,14 +1485,14 @@ using event-post!.
             (case-lambda
               ((await resume port text) (await-put-string! await resume #f port text))
               ((await resume loop port text)
-               (define length (string-length text))
                (define index 0)
                (define bv
                  (let ((encoding (or (port-encoding port)
-                 			   (fluid-ref %default-port-encoding)
+          			   (fluid-ref %default-port-encoding)
           			   "ISO-8859-1"))
           	     (conversion-strategy (port-conversion-strategy port)))
           	 (iconv:string->bytevector text encoding conversion-strategy)))
+               (define length (bytevector-length bv))
                (a-sync-write-watch! resume
           			  port
           			  (lambda (status)
@@ -2285,8 +2285,8 @@ Node: Top85
 Node: overview1123
 Node: coroutines4061
 Node: event loop22012
-Node: monotonic time81436
-Node: gnome glib82870
-Node: compose110688
+Node: monotonic time81431
+Node: gnome glib82865
+Node: compose110683
 
 End Tag Table
