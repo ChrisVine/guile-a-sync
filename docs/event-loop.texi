@@ -11,14 +11,14 @@ single threaded.
 However, the event loop provided by this module does support multiple
 threads.  Most of the event loop procedures in this module are thread
 safe and may be called in any thread.  The thread safe procedures are
-event-loop-run!  (as mentioned, this will cause the event loop to run
+event-loop-run! (as mentioned, this will cause the event loop to run
 in the thread which calls it), event-loop-block!, event-loop-quit!,
-event-post!, event-loop-add-read-watch!, event-loop-add-write-watch!,
-event-loop-remove-read-watch!, event-loop-remove-write-watch!,
-timeout-post! and timeout-remove!.  In particular, event-post! allows
-worker threads to post an event to an event loop, say with the result
-of a computation, so that the event callback will execute in the event
-loop thread.
+event-post!, event-loop-tasks, event-loop-add-read-watch!,
+event-loop-add-write-watch!, event-loop-remove-read-watch!,
+event-loop-remove-write-watch!, timeout-post! and timeout-remove!.  In
+particular, event-post! allows worker threads to post an event to an
+event loop, say with the result of a computation, so that the event
+callback will execute in the event loop thread.
 
 The file watches provided by this module use guile's wrapper for the
 select() system call.  This has two consequences.  First, in linux
@@ -28,10 +28,29 @@ non-blocking using the guile wrapper for the fcntl() system call in
 order to prevent a blocking read where it is not expected
 (EAGAIN/EWOULDBLOCK is handled correctly by the await-getline!,
 await-geteveryline! and await-getsomelines! procedures from version
-0.5).  Secondly, with select() the file descriptor value of a port
-passed to the watch should not exceed FD_SETSIZE.  Normally, by
-default the maximum soft user limit for open files is the same as
-FD_SETSIZE, and it is best if this situation is retained by user code.
+0.5, and by await-put-string!).  Secondly, with select() the file
+descriptor value of a port passed to the watch should not exceed
+FD_SETSIZE.  Normally, by default the maximum soft user limit for open
+files is the same as FD_SETSIZE, and it is best if this situation is
+retained by user code.
+
+Where a file watch on a file descriptor or port has been added with
+event-loop-add-read-watch! or event-loop-add-write-watch!, the event
+loop should be treated as owning the status of the descriptor or port
+until it has subsequently been removed with
+event-loop-remove-read-watch! or event-loop-remove-write-watch!.  In
+particular, if the watch is on a port, an error in the fileno
+procedure will arise at some point if the port is closed (say by
+calling close, close-port, close-input-port or close-output-port)
+before its watch has been removed from the event loop; if the watch is
+on a file descriptor and the descriptor value is reused by the
+operating system, there may be a phantom watch on the new descriptor.
+Also note that if a worker thread other than the event loop thread
+removes the watch and immediately follows it with a close of the port
+or descriptor, the file watch callback may be called once in
+consequence, so in such a case either the callback should be ready to
+handle a possibly closed port or descriptor or the worker thread
+should post the closing as an event using event-post!.
 
 This modules provides the following procedures:
 
