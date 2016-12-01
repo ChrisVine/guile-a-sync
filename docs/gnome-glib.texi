@@ -484,7 +484,6 @@ As an example of how to use a-sync-glib-write-watch, here is the
 implementation of await-glib-put-string:
 @example
 (define (await-glib-put-string await resume port text)
-  (define length (string-length text))
   (define index 0)
   (define bv
     (let ((encoding (or (port-encoding port)
@@ -492,6 +491,7 @@ implementation of await-glib-put-string:
 			"ISO-8859-1"))
 	  (conversion-strategy (port-conversion-strategy port)))
       (iconv:string->bytevector text encoding conversion-strategy)))
+  (define length (bytevector-length bv))
   (define id (a-sync-glib-write-watch resume
 				      (port->fdes port)
 				      (lambda (ioc status)

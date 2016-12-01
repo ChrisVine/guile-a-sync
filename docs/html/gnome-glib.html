@@ -547,7 +547,6 @@ locally, it will propagate out of g-main-loop-run.
 implementation of await-glib-put-string:
 </p><div class="example">
 <pre class="example">(define (await-glib-put-string await resume port text)
-  (define length (string-length text))
   (define index 0)
   (define bv
     (let ((encoding (or (port-encoding port)
@@ -555,6 +554,7 @@ implementation of await-glib-put-string:
 			&quot;ISO-8859-1&quot;))
 	  (conversion-strategy (port-conversion-strategy port)))
       (iconv:string-&gt;bytevector text encoding conversion-strategy)))
+  (define length (bytevector-length bv))
   (define id (a-sync-glib-write-watch resume
 				      (port-&gt;fdes port)
 				      (lambda (ioc status)

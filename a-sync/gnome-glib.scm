@@ -564,7 +564,6 @@
 ;;
 ;; This procedure is first available in version 0.10 of this library.
 (define (await-glib-put-string await resume port text)
-  (define length (string-length text))
   (define index 0)
   (define bv
     (let ((encoding (or (port-encoding port)
@@ -572,6 +571,7 @@
 			"ISO-8859-1"))
 	  (conversion-strategy (port-conversion-strategy port)))
       (iconv:string->bytevector text encoding conversion-strategy)))
+  (define length (bytevector-length bv))
   (define id (a-sync-glib-write-watch resume
 				      (port->fdes port)
 				      (lambda (ioc status)
