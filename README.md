@@ -15,7 +15,10 @@ docs/example.scm and docs/example-glib.scm files.
 
 A separate guile-a-sync2 library is available for guile-2.2 here:
 https://github.com/ChrisVine/guile-a-sync2 .  This library and
-guile-a-sync2 are parallel installable.
+guile-a-sync2 are parallel installable.  Where a program is to be
+heavily i/o based, say it is based on sockets, and guile-2.2 is
+available, guile-a-sync2 is recommended as it makes use of guile-2.2's
+new suspendable ports, which are very nice.
 
 Installation
 ------------
