@@ -75,19 +75,25 @@
 			    (lambda ()
 			      (connect sockport
 				       (addrinfo:addr (car (getaddrinfo check-ip "http"))))))
-     ;; we need a separate output port which is not buffered.  As this
-     ;; is a socket, with no file position pointer, creating a new
-     ;; output port is fine.
-     (let ((out-sockport (duplicate-port sockport "w0")))
+     ;; Socket ports are unbuffered by default, which is what we want
+     ;; for output.  However it would be nice to be buffered for
+     ;; input.  guile offers no means of having different buffering
+     ;; strategies for input and output on a single port, but making
+     ;; an additional port and incrementing the revealed count seems
+     ;; to work fine (and as this is a socket, with no file position
+     ;; pointer, keeping port buffers synchronized is not an issue).
+     ;; It would be nice if there were a better way of doing it
+     ;; provided by guile.
+     (let ((in-sockport (fdopen (port->fdes sockport) "rb")))
        ;; make socket ports non-blocking
        (fcntl sockport F_SETFL (logior O_NONBLOCK
 				       (fcntl sockport F_GETFL)))
-       (fcntl out-sockport F_SETFL (logior O_NONBLOCK
-					   (fcntl out-sockport F_GETFL)))
-       (send-get-request-async await resume check-ip "/" out-sockport)
+       (fcntl in-sockport F_SETFL (logior O_NONBLOCK
+					  (fcntl in-sockport F_GETFL)))
+       (send-get-request-async await resume check-ip "/" sockport)
        (call-with-values
 	   (lambda ()
-	     (read-response-async await resume sockport))
+	     (read-response-async await resume in-sockport))
 	 (lambda (header body)
 	   (display body)
 	   (newline)))
