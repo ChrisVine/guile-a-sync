@@ -13,8 +13,8 @@ control (aka "callback hell").
 See the documentation mentioned below for further details, and the
 docs/example.scm and docs/example-glib.scm files.
 
-A separate guile-a-sync2 library is available here for guile-2.2 (from
-guile version 2.1.3 onwards):
+A separate guile-a-sync2 library is available here for guile-2.1/2.2
+(from guile version 2.1.3 onwards):
 https://github.com/ChrisVine/guile-a-sync2 .  This library and
 guile-a-sync2 are parallel installable.  Where a program is to be
 heavily i/o based, say it is based on sockets, and guile-2.1/2.2 is
