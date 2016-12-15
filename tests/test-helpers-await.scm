@@ -352,7 +352,7 @@
   (test-result 2 count)
   (print-result))
 
-;; Test 15: await-put-string! (also tests a-sync-write-watch!)
+;; Test 15: await-put-string! (also tests a-sync-write-watch! and await-put-bytevector!)
 
 (let ()
   (define test-pipe (pipe))
@@ -746,7 +746,7 @@
   (test-result 2 count)
   (print-result))
 
-;; Test 33: await-put-string! (also tests a-sync-write-watch!)
+;; Test 33: await-put-string! (also tests a-sync-write-watch! and await-put-bytevector!)
 
 (let ()
   (define test-pipe (pipe))

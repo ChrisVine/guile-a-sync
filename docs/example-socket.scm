@@ -75,29 +75,20 @@
 			    (lambda ()
 			      (connect sockport
 				       (addrinfo:addr (car (getaddrinfo check-ip "http"))))))
-     ;; Socket ports are unbuffered by default, which is what we want
-     ;; for output.  However it would be nice to be buffered for
-     ;; input.  guile offers no means of having different buffering
-     ;; strategies for input and output on a single port, but making
-     ;; an additional port and incrementing the revealed count seems
-     ;; to work fine (and as this is a socket, with no file position
-     ;; pointer, keeping port buffers synchronized is not an issue).
-     ;; It would be nice if there were a better way of doing it
-     ;; provided by guile.
-     (let ((in-sockport (fdopen (port->fdes sockport) "rb")))
-       ;; make socket ports non-blocking
-       (fcntl sockport F_SETFL (logior O_NONBLOCK
-				       (fcntl sockport F_GETFL)))
-       (fcntl in-sockport F_SETFL (logior O_NONBLOCK
-					  (fcntl in-sockport F_GETFL)))
-       (send-get-request-async await resume check-ip "/" sockport)
-       (call-with-values
-	   (lambda ()
-	     (read-response-async await resume in-sockport))
-	 (lambda (header body)
-	   (display body)
-	   (newline)))
-       (event-loop-block! #f)))))
+     ;; It would be nice to have the input port buffered.  The output
+     ;; buffer will be ignored by await-put-string!
+     (setvbuf sockport _IOFBF 1024)
+     ;; make socket ports non-blocking
+     (fcntl sockport F_SETFL (logior O_NONBLOCK
+				     (fcntl sockport F_GETFL)))
+     (send-get-request-async await resume check-ip "/" sockport)
+     (call-with-values
+	 (lambda ()
+	   (read-response-async await resume sockport))
+       (lambda (header body)
+	 (display body)
+	 (newline)))
+     (event-loop-block! #f))))
   
 (event-loop-block! #t)
 (event-loop-run!)

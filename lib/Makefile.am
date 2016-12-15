@@ -2,7 +2,7 @@
 
 lib_LTLIBRARIES = libguile-a-sync-0.la
 
-libguile_a_sync_0_la_SOURCES = monotonic_time.c
+libguile_a_sync_0_la_SOURCES = monotonic_time.c unix_write.c
 
 AM_CFLAGS = @GUILE_CFLAGS@ -I..
 
