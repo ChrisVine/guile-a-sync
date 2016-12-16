@@ -56,9 +56,12 @@
 	    await-getline!
 	    await-geteveryline!
 	    await-getsomelines!
-	    c-write
+	    await-getblock!
+	    await-geteveryblock!
+	    await-getsomeblocks!
 	    await-put-bytevector!
-	    await-put-string!))
+	    await-put-string!
+	    c-write))
 
 ;; We need to import the definition of the c-write procedure, as
 ;; provided by unix_write.c. 
@@ -1313,9 +1316,11 @@
 ;; input.  It calls 'await' while waiting for input and will return
 ;; the line of text received (without the terminating '\n' character).
 ;; The event loop will not be blocked by this procedure even if only
-;; individual characters are available at any one time.  It is
-;; intended to be called in a waitable procedure invoked by a-sync,
-;; and this procedure is implemented using a-sync-read-watch!.  If an
+;; individual characters or part characters are available at any one
+;; time (although if 'port' references a socket, it should be
+;; non-blocking for this to be guaranteed).  It is intended to be
+;; called in a waitable procedure invoked by a-sync, and this
+;; procedure is implemented using a-sync-read-watch!.  If an
 ;; exceptional condition ('excpt) is encountered, #f will be returned.
 ;; If an end-of-file object is encountered which terminates a line of
 ;; text, a string containing the line of text will be returned (and
@@ -1443,15 +1448,16 @@
 ;; string as its only argument.
 ;;
 ;; The event loop will not be blocked by this procedure even if only
-;; individual characters are available at any one time.  It is
-;; intended to be called in a waitable procedure invoked by a-sync.
-;; This procedure is implemented using a-sync-read-watch!.  Unlike the
-;; await-getline! procedure, the watch will continue after a line of
-;; text has been received in order to receive further lines.  The
-;; watch will not end until end-of-file or an exceptional condition
-;; ('excpt) is reached.  In the event of that happening, this
-;; procedure will end and return an end-of-file object or #f
-;; respectively.
+;; individual characters or part characters are available at any one
+;; time (although if 'port' references a socket, it should be
+;; non-blocking for this to be guaranteed).  It is intended to be
+;; called in a waitable procedure invoked by a-sync.  This procedure
+;; is implemented using a-sync-read-watch!.  Unlike the await-getline!
+;; procedure, the watch will continue after a line of text has been
+;; received in order to receive further lines.  The watch will not end
+;; until end-of-file or an exceptional condition ('excpt) is reached.
+;; In the event of that happening, this procedure will end and return
+;; an end-of-file object or #f respectively.
 ;;
 ;; The 'loop' argument is optional: this procedure operates on the
 ;; event loop passed in as an argument, or if none is passed (or #f is
@@ -1608,14 +1614,16 @@
 ;; of text read, and an escape continuation as its second.
 ;;
 ;; The event loop will not be blocked by this procedure even if only
-;; individual characters are available at any one time.  It is
-;; intended to be called in a waitable procedure invoked by a-sync.
-;; This procedure is implemented using a-sync-read-watch!.  The watch
-;; will not end until end-of-file or an exceptional condition ('excpt)
-;; is reached, which would cause this procedure to end and return an
-;; end-of-file object or #f respectively, or until the escape
-;; continuation is invoked, in which case the value passed to the
-;; escape continuation will be returned.
+;; individual characters or part characters are available at any one
+;; time (although if 'port' references a socket, it should be
+;; non-blocking for this to be guaranteed).  It is intended to be
+;; called in a waitable procedure invoked by a-sync.  This procedure
+;; is implemented using a-sync-read-watch!.  The watch will not end
+;; until end-of-file or an exceptional condition ('excpt) is reached,
+;; which would cause this procedure to end and return an end-of-file
+;; object or #f respectively, or until the escape continuation is
+;; invoked, in which case the value passed to the escape continuation
+;; will be returned.
 ;;
 ;; The 'loop' argument is optional: this procedure operates on the
 ;; event loop passed in as an argument, or if none is passed (or #f is
@@ -1757,6 +1765,327 @@
 	    (lambda args
 	      (event-loop-remove-read-watch! port loop)
 	      (apply throw args))))))
+
+;; This is a convenience procedure whose signature is:
+;;
+;;   (await-getblock! await resume [loop] port size)
+;;
+;; This procedure will start a read watch on 'port' for a block of
+;; data, such as a binary record, of size 'size'.  It calls 'await'
+;; while waiting for input and will return a pair, normally comprising
+;; as its car a bytevector of length 'size' containing the data, and
+;; as its cdr the number of bytes received (which will be the same as
+;; 'size' unless an end-of-file object was encountered part way
+;; through receiving the data).  The event loop will not be blocked by
+;; this procedure even if only individual bytes are available at any
+;; one time (although if 'port' references a socket, it should be
+;; non-blocking for this to be guaranteed).  It is intended to be
+;; called in a waitable procedure invoked by a-sync.  This procedure
+;; is implemented using a-sync-read-watch!.
+;;
+;; If an exceptional condition ('excpt) is encountered, a pair
+;; comprising (#f . 'f) will be returned.  As mentioned above, if an
+;; end-of-file object is encountered after receipt of some but not
+;; 'size' bytes, then a bytevector of length 'size' will be returned
+;; as car and the actual (lesser) number of bytes inserted in it as
+;; cdr.  If an end-of-file object is encountered without any bytes of
+;; data, a pair with eof-object as car and #f as cdr will be returned.
+;;
+;; The 'loop' argument is optional: this procedure operates on the
+;; event loop passed in as an argument, or if none is passed (or #f is
+;; passed), on the default event loop.
+;;
+;; This procedure must (like the a-sync procedure) be called in the
+;; same thread as that in which the event loop runs.
+;;
+;; Exceptions may propagate out of this procedure if they arise while
+;; setting up (that is, before the first call to 'await' is made),
+;; which shouldn't happen unless memory is exhausted.  Subsequent
+;; exceptions (say, because of port errors) will propagate out of
+;; event-loop-run!.
+;;
+;; This procedure is first available in version 0.11 of this library.
+(define await-getblock!
+  (case-lambda
+    ((await resume port size) (await-getblock! await resume #f port size))
+    ((await resume loop port size)
+     (let ()
+       (define bv (make-bytevector size))
+       (define index 0)
+       (a-sync-read-watch! resume
+			   port
+			   (lambda (status)
+			     (if (eq? status 'excpt)
+				 (cons #f #f)
+				 (let next ()
+				   (let ((u8
+					  (catch 'system-error
+					    (lambda ()
+					      (get-u8 port))
+					    (lambda args
+					      (if (or (= EAGAIN (system-error-errno args))
+						      (and (defined? 'EWOULDBLOCK) 
+							   (= EWOULDBLOCK (system-error-errno args))))
+						  'more
+						  (apply throw args))))))
+				     (cond
+				      ((eq? u8 'more)
+				       (cons 'more #f))
+				      ((eof-object? u8)
+				       (if (= index 0)
+					   (cons u8 #f)
+					   (cons bv index)))
+				      (else
+				       (bytevector-u8-set! bv index u8)
+				       (set! index (1+ index))
+				       (if (= index size)
+					   (cons bv size)
+					   (if (char-ready? port)
+					       (next)
+					       (cons 'more #f)))))))))
+			   loop))
+     (let next ((res (await)))
+       (if (eq? (car res) 'more)
+	   (next (await))
+	   (begin
+	     (event-loop-remove-read-watch! port loop)
+	     res))))))
+
+;; This is a convenience procedure whose signature is:
+;;
+;;   (await-geteveryblock! await resume [loop] port size proc)
+;;
+;; This procedure will start a read watch on 'port' for blocks of
+;; data, such as binary records, of size 'size'.  It calls 'await'
+;; while waiting for input and will apply 'proc' to any block of data
+;; received.  'proc' should be a procedure taking two arguments, first
+;; a bytevector of length 'size' containing the block of data read and
+;; second the size of the block of data placed in the bytevector.  The
+;; value passed as the size of the block of data placed in the
+;; bytevector will always be the same as 'size' unless end-of-file has
+;; been encountered after receiving only a partial block of data.
+;;
+;; The event loop will not be blocked by this procedure even if only
+;; individual bytes are available at any one time (although if 'port'
+;; references a socket, it should be non-blocking for this to be
+;; guaranteed).  It is intended to be called in a waitable procedure
+;; invoked by a-sync.  This procedure is implemented using
+;; a-sync-read-watch!.  Unlike the await-getblock! procedure, the
+;; watch will continue after a complete block of data has been
+;; received in order to receive further blocks.  The watch will not
+;; end until end-of-file or an exceptional condition ('excpt) is
+;; reached.  In the event of that happening, this procedure will end
+;; and return an end-of-file object or #f respectively.
+;;
+;; The 'loop' argument is optional: this procedure operates on the
+;; event loop passed in as an argument, or if none is passed (or #f is
+;; passed), on the default event loop.
+;;
+;; This procedure must (like the a-sync procedure) be called in the
+;; same thread as that in which the event loop runs.
+;;
+;; Exceptions may propagate out of this procedure if they arise while
+;; setting up (that is, before the first call to 'await' is made),
+;; which shouldn't happen unless memory is exhausted.  Subsequent
+;; exceptions (say, because of port errors) will propagate out of
+;; event-loop-run!.  Exceptions raised by 'proc', if not caught
+;; locally, will also propagate out of event-loop-run!.
+;;
+;; This procedure is first available in version 0.11 of this library.
+(define await-geteveryblock!
+  (case-lambda
+    ((await resume port size proc) (await-geteveryblock! await resume #f port size proc))
+    ((await resume loop port size proc)
+     (let ()
+       (define bv (make-bytevector size))
+       (define index 0)
+       (a-sync-read-watch! resume
+			   port
+			   (lambda (status)
+			     (if (eq? status 'excpt)
+				 (cons #f #f)
+				 (let next ()
+				   (let ((u8
+					  (catch 'system-error
+					    (lambda ()
+					      (get-u8 port))
+					    (lambda args
+					      (if (or (= EAGAIN (system-error-errno args))
+						      (and (defined? 'EWOULDBLOCK) 
+							   (= EWOULDBLOCK (system-error-errno args))))
+						  'more
+						  (apply throw args))))))
+				     (cond
+				      ((eq? u8 'more)
+				       (cons 'more #f))
+				      ((eof-object? u8)
+				       (if (= index 0)
+					   (cons u8 #f)
+					   (let ((len index))
+					     (set! index 0)
+					     (cons bv len))))
+				      (else
+				       (bytevector-u8-set! bv index u8)
+				       (set! index (1+ index))
+				       (if (= index size)
+					   (begin
+					     (set! index 0)
+					     (cons bv size))
+					   (if (char-ready? port)
+					       (next)
+					       (cons 'more #f)))))))))
+			   loop))
+     ;; exceptions thrown from the remainder of this procedure (and in
+     ;; particular from 'proc') will in the first instance be thrown
+     ;; out of this procedure, before being thrown out of
+     ;; event-loop-run! on coming out of the a-sync block.  This catch
+     ;; block ensures that the watch is removed even if the user has
+     ;; her own exception handler within the a-sync block which covers
+     ;; this procedure.
+     (catch #t
+       (lambda ()
+	 (let ((ret-val
+		(let next ((res (await)))
+		  (let ((val (car res))
+			(len (cdr res)))
+		    (cond
+		     ((eq? val 'more)
+		      (next (await)))
+		     ((or (eof-object? val)
+			  (not val))
+		      val)
+		     (else
+		      (proc val len)
+		      (if (< len size)
+			  (eof-object)
+			  (next (await)))))))))
+	   (event-loop-remove-read-watch! port loop)
+	   ret-val))
+       (lambda args
+	 (event-loop-remove-read-watch! port loop)
+	 (apply throw args))))))
+
+;; This is a convenience procedure whose signature is:
+;;
+;;   (await-getsomeblocks! await resume [loop] port size proc)
+;;
+;; This procedure does the same as await-geteveryblock!, except that
+;; it provides a third argument to 'proc', namely an escape
+;; continuation which can be invoked by 'proc' to cause the procedure
+;; to return before end-of-file is reached.  Behavior is identical to
+;; await-geteveryblock! if the continuation is not invoked.
+;;
+;; This procedure will start a read watch on 'port' for blocks of
+;; data, such as binary records, of size 'size'.  It calls 'await'
+;; while waiting for input and will apply 'proc' to any block of data
+;; received.  'proc' should be a procedure taking three arguments,
+;; first a bytevector of length 'size' containing the block of data
+;; read, second the size of the block of data placed in the bytevector
+;; and third an escape continuation.  The value passed as the size of
+;; the block of data placed in the bytevector will always be the same
+;; as 'size' unless end-of-file has been encountered after receiving
+;; only a partial block of data.
+;;
+;; The event loop will not be blocked by this procedure even if only
+;; individual bytes are available at any one time (although if 'port'
+;; references a socket, it should be non-blocking for this to be
+;; guaranteed).  It is intended to be called in a waitable procedure
+;; invoked by a-sync.  This procedure is implemented using
+;; a-sync-read-watch!.  The watch will not end until end-of-file or an
+;; exceptional condition ('excpt) is reached, which would cause this
+;; procedure to end and return an end-of-file object or #f
+;; respectively, or until the escape continuation is invoked, in which
+;; case the value passed to the escape continuation will be returned.
+;;
+;; The 'loop' argument is optional: this procedure operates on the
+;; event loop passed in as an argument, or if none is passed (or #f is
+;; passed), on the default event loop.
+;;
+;; This procedure must (like the a-sync procedure) be called in the
+;; same thread as that in which the event loop runs.
+;;
+;; Exceptions may propagate out of this procedure if they arise while
+;; setting up (that is, before the first call to 'await' is made),
+;; which shouldn't happen unless memory is exhausted.  Subsequent
+;; exceptions (say, because of port errors) will propagate out of
+;; event-loop-run!.  Exceptions raised by 'proc', if not caught
+;; locally, will also propagate out of event-loop-run!.
+;;
+;; This procedure is first available in version 0.11 of this library.
+(define await-getsomeblocks!
+  (case-lambda
+    ((await resume port size proc) (await-getsomeblocks! await resume #f port size proc))
+    ((await resume loop port size proc)
+     (let ()
+       (define bv (make-bytevector size))
+       (define index 0)
+       (a-sync-read-watch! resume
+			   port
+			   (lambda (status)
+			     (if (eq? status 'excpt)
+				 (cons #f #f)
+				 (let next ()
+				   (let ((u8
+					  (catch 'system-error
+					    (lambda ()
+					      (get-u8 port))
+					    (lambda args
+					      (if (or (= EAGAIN (system-error-errno args))
+						      (and (defined? 'EWOULDBLOCK) 
+							   (= EWOULDBLOCK (system-error-errno args))))
+						  'more
+						  (apply throw args))))))
+				     (cond
+				      ((eq? u8 'more)
+				       (cons 'more #f))
+				      ((eof-object? u8)
+				       (if (= index 0)
+					   (cons u8 #f)
+					   (let ((len index))
+					     (set! index 0)
+					     (cons bv len))))
+				      (else
+				       (bytevector-u8-set! bv index u8)
+				       (set! index (1+ index))
+				       (if (= index size)
+					   (begin
+					     (set! index 0)
+					     (cons bv size))
+					   (if (char-ready? port)
+					       (next)
+					       (cons 'more #f)))))))))
+			   loop))
+     ;; exceptions thrown from the remainder of this procedure (and in
+     ;; particular from 'proc') will in the first instance be thrown
+     ;; out of this procedure, before being thrown out of
+     ;; event-loop-run! on coming out of the a-sync block.  This catch
+     ;; block ensures that the watch is removed even if the user has
+     ;; her own exception handler within the a-sync block which covers
+     ;; this procedure.
+     (catch #t
+       (lambda ()
+	 (let ((ret-val
+		(let next ((res (await)))
+		  (let ((val (car res))
+			(len (cdr res)))
+		    (cond
+		     ((eq? val 'more)
+		      (next (await)))
+		     ((or (eof-object? val)
+			  (not val))
+		      val)
+		     (else
+		      (call/ec
+		       (lambda (k)
+			 (proc val len k)
+			 (if (< len size)
+			     (eof-object)
+			     (next (await)))))))))))
+	   (event-loop-remove-read-watch! port loop)
+	   ret-val))
+       (lambda args
+	 (event-loop-remove-read-watch! port loop)
+	 (apply throw args))))))
 
 ;; This is a convenience procedure for use with an event loop, which
 ;; will run 'proc' in the event loop thread whenever 'file' is ready
