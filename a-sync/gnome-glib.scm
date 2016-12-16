@@ -56,6 +56,7 @@
 	    a-sync-glib-read-watch
 	    a-sync-glib-write-watch
 	    await-glib-getline
+	    await-glib-getblock
 	    await-glib-put-bytevector
 	    await-glib-put-string))
 
@@ -443,45 +444,142 @@
   (define id (a-sync-glib-read-watch resume
 				     (port->fdes port)
 				     (lambda (ioc status)
-				       ;; this doesn't work.  The wrapper does not seem to provide
-				       ;; any way of extracting GIOCondition enumeration values
-				       ;; which actually works.  However, 'err or 'pri should cause
-				       ;; a read of the port to return an eof-object
-				       ;; (if (or (eq? status 'pri)
-				       ;; 	  (eq? status 'err))
-				       ;;     #f
-				       (let next ()
-					 (let ((u8
-						(catch 'system-error
-						  (lambda ()
-						    (get-u8 port))
-						  (lambda args
-						    (if (or (= EAGAIN (system-error-errno args))
-							    (and (defined? 'EWOULDBLOCK) 
-								 (= EWOULDBLOCK (system-error-errno args))))
-							'more
-							(apply throw args))))))
-					   (cond
-					    ((eq? u8 'more)
-					     'more)
-					    ((eof-object? u8)
-					     (if (= text-len 0)
-						 u8
-						 (make-outstring)))
-					    ;; just swallow a DOS-style CR character
-					    ((= u8 (char->integer #\return))
-					     (if (char-ready? port)
-						 (next)
-						 'more))
-					    ((= u8 (char->integer #\newline))
-					     (make-outstring))
-					    (else
-					     (append-byte! u8)
-					     (if (char-ready? port)
-						 (next)
-						 'more))))))))
+				       (catch #t
+					 (lambda ()
+					   ;; this doesn't work.  The wrapper does not seem to provide
+					   ;; any way of extracting GIOCondition enumeration values
+					   ;; which actually works.  However, 'err or 'pri should cause
+					   ;; a read of the port to return an eof-object
+					   ;; (if (or (eq? status 'pri)
+					   ;; 	  (eq? status 'err))
+					   ;;     #f
+					   (let next ()
+					     (let ((u8
+						    (catch 'system-error
+						      (lambda ()
+							(get-u8 port))
+						      (lambda args
+							(if (or (= EAGAIN (system-error-errno args))
+								(and (defined? 'EWOULDBLOCK) 
+								     (= EWOULDBLOCK (system-error-errno args))))
+							    'more
+							    (apply throw args))))))
+					       (cond
+						((eq? u8 'more)
+						 'more)
+						((eof-object? u8)
+						 (if (= text-len 0)
+						     u8
+						     (make-outstring)))
+						;; just swallow a DOS-style CR character
+						((= u8 (char->integer #\return))
+						 (if (char-ready? port)
+						     (next)
+						     'more))
+						((= u8 (char->integer #\newline))
+						 (make-outstring))
+						(else
+						 (append-byte! u8)
+						 (if (char-ready? port)
+						     (next)
+						     'more))))))
+					 (lambda args
+					   (g-source-remove id)
+					   (release-port-handle port)
+					   (apply throw args))))))
   (let next ((res (await)))
     (if (eq? res 'more)
+	(next (await))
+	(begin
+	  (g-source-remove id)
+	  (release-port-handle port)
+	  res))))
+
+;; This is a convenience procedure for use with a glib main loop,
+;; which will start a read watch on 'port' for a block of data, such
+;; as a binary record, of size 'size'.  It calls 'await' while waiting
+;; for input and will return a pair, normally comprising as its car a
+;; bytevector of length 'size' containing the data, and as its cdr the
+;; number of bytes received (which will be the same as 'size' unless
+;; an end-of-file object was encountered part way through receiving
+;; the data).  The event loop will not be blocked by this procedure
+;; even if only individual bytes are available at any one time
+;; (although if 'port' references a socket, it should be non-blocking
+;; for this to be guaranteed).  It is intended to be called in a
+;; waitable procedure invoked by a-sync, and this procedure is
+;; implemented using a-sync-glib-read-watch.
+;;
+;; As mentioned above, if an end-of-file object is encountered after
+;; receipt of some but not 'size' bytes, then a bytevector of length
+;; 'size' will be returned as car and the actual (lesser) number of
+;; bytes inserted in it as cdr.  If an end-of-file object is
+;; encountered without any bytes of data, a pair with eof-object as
+;; car and #f as cdr will be returned.
+;;
+;; For the reasons explained in the documentation on
+;; a-sync-glib-read-watch, this procedure only works correctly if the
+;; port passed to the 'port' argument has buffering switched off (say
+;; by using the open-file, fdopen or duplicate-port procedure with the
+;; '0' mode option, or by calling setvbuf).  This makes the procedure
+;; less useful than would otherwise be the case.
+;;
+;; This procedure must (like the a-sync procedure) be called in the
+;; same thread as that in which the default glib main loop runs.
+;;
+;; Exceptions may propagate out of this procedure if they arise while
+;; setting up (that is, before the first call to 'await' is made),
+;; which shouldn't happen unless memory is exhausted.  Subsequent
+;; exceptions (say, because of port errors) will propagate out of
+;; g-main-loop-run.
+;;
+;; This procedure is first available in version 0.11 of this library.
+(define (await-glib-getblock await resume port size)
+  (define bv (make-bytevector size))
+  (define index 0)
+  (define id (a-sync-glib-read-watch resume
+				     (port->fdes port)
+				     (lambda (ioc status)
+				       (catch #t
+					 (lambda ()
+					   ;; this doesn't work.  The wrapper does not seem to provide
+					   ;; any way of extracting GIOCondition enumeration values
+					   ;; which actually works.  However, 'err or 'pri should cause
+					   ;; a read of the port to return an eof-object
+					   ;; (if (or (eq? status 'pri)
+					   ;; 	      (eq? status 'err))
+					   ;;     (cons #f #f)
+					   (let next ()
+					     (let ((u8
+						    (catch 'system-error
+						      (lambda ()
+							(get-u8 port))
+						      (lambda args
+							(if (or (= EAGAIN (system-error-errno args))
+								(and (defined? 'EWOULDBLOCK) 
+								     (= EWOULDBLOCK (system-error-errno args))))
+							    'more
+							    (apply throw args))))))
+					       (cond
+						((eq? u8 'more)
+						 (cons 'more #f))
+						((eof-object? u8)
+						 (if (= index 0)
+						     (cons u8 #f)
+						     (cons bv index)))
+						(else
+						 (bytevector-u8-set! bv index u8)
+						 (set! index (1+ index))
+						 (if (= index size)
+						     (cons bv size)
+						     (if (char-ready? port)
+							 (next)
+							 (cons 'more #f))))))))
+					 (lambda args
+					   (g-source-remove id)
+					   (release-port-handle port)
+					   (apply throw args))))))
+  (let next ((res (await)))
+    (if (eq? (car res) 'more)
 	(next (await))
 	(begin
 	  (g-source-remove id)

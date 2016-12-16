@@ -446,6 +446,46 @@ Here is an example of the use of await-glib-getline:
 @end example
 @end deffn
 
+@deffn {Scheme Procedure} await-glib-getblock await resume port size
+This is a convenience procedure for use with a glib main loop, which
+will start a read watch on 'port' for a block of data, such as a
+binary record, of size 'size'.  It calls 'await' while waiting for
+input and will return a pair, normally comprising as its car a
+bytevector of length 'size' containing the data, and as its cdr the
+number of bytes received (which will be the same as 'size' unless an
+end-of-file object was encountered part way through receiving the
+data).  The event loop will not be blocked by this procedure even if
+only individual bytes are available at any one time (although if
+'port' references a socket, it should be non-blocking for this to be
+guaranteed).  It is intended to be called in a waitable procedure
+invoked by a-sync, and this procedure is implemented using
+a-sync-glib-read-watch.
+
+As mentioned above, if an end-of-file object is encountered after
+receipt of some but not 'size' bytes, then a bytevector of length
+'size' will be returned as car and the actual (lesser) number of bytes
+inserted in it as cdr.  If an end-of-file object is encountered
+without any bytes of data, a pair with eof-object as car and #f as cdr
+will be returned.
+
+For the reasons explained in the documentation on
+a-sync-glib-read-watch, this procedure only works correctly if the
+port passed to the 'port' argument has buffering switched off (say by
+using the open-file, fdopen or duplicate-port procedure with the '0'
+mode option, or by calling setvbuf).  This makes the procedure less
+useful than would otherwise be the case.
+
+This procedure must (like the a-sync procedure) be called in the same
+thread as that in which the default glib main loop runs.
+
+Exceptions may propagate out of this procedure if they arise while
+setting up (that is, before the first call to 'await' is made), which
+shouldn't happen unless memory is exhausted.  Subsequent exceptions
+(say, because of port errors) will propagate out of g-main-loop-run.
+
+This procedure is first available in version 0.11 of this library.
+@end deffn
+
 @deffn {Scheme Procedure} a-sync-glib-write-watch resume fd proc
 This is a convenience procedure for use with a glib main loop, which
 will run 'proc' in the default glib main loop whenever the file
