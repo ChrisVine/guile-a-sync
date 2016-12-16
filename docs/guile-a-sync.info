@@ -221,18 +221,19 @@ The (a-sync coroutines) module provides the following procedures:
      await-task-in-event-loop!, await-generator!,
      await-generator-in-thread!, await-generator-in-event-loop!,
      await-timeout!, a-sync-read-watch!, await-getline!,
-     await-geteveryline!, await-getsomelines!, a-sync-write-watch!  and
-     await-put-string!  convenience procedures which will correctly set
-     this up for you automatically, and the *note compose: compose.
-     module provides a compose-a-sync macro for composition.  If those
-     convenience procedures are used, exceptions should always be
-     handled locally in the waitable procedure (and if the callback
-     might throw, in the callback also) if it is undesirable that
-     uncaught exceptions propagate out of event-loop-run!.  In the case
-     of await-task-in-thread!, that procedure also takes an optional
-     handler argument which will handle any exceptions thrown by the
-     task: otherwise the task thread throwing would terminate the
-     program if not caught within the task.
+     await-geteveryline!, await-getsomelines!, await-getblock!,
+     await-geteveryblock!, await-getsomeblocks!, a-sync-write-watch!,
+     await-put-bytevector!  and await-put-string!  convenience
+     procedures which will correctly set this up for you automatically,
+     and the *note compose: compose. module provides a compose-a-sync
+     macro for composition.  If those convenience procedures are used,
+     exceptions should always be handled locally in the waitable
+     procedure (and if the callback might throw, in the callback also)
+     if it is undesirable that uncaught exceptions propagate out of
+     event-loop-run!.  In the case of await-task-in-thread!, that
+     procedure also takes an optional handler argument which will handle
+     any exceptions thrown by the task: otherwise the task thread
+     throwing would terminate the program if not caught within the task.
 
      There can be as many calls to 'await' and asynchronous callbacks in
      any one waitable procedure as wanted, to enable composition of
@@ -1710,7 +1711,8 @@ using event-post!.
      be used with a port with buffered output.  However, if that is done
      and the port has previously been used for output by a procedure
      other than c-write or an await-put* procedure, then it should be
-     flushed before this procedure is called.
+     flushed before this procedure is called.  Such flushing might
+     block.
 
      This procedure will throw a 'c-write-error exception if passed a
      regular file with a file position pointer: there should be no need
@@ -1763,7 +1765,8 @@ using event-post!.
      be used with a port with buffered output.  However, if that is done
      and the port has previously been used for output by a procedure
      other than c-write or an await-put* procedure, then it should be
-     flushed before this procedure is called.
+     flushed before this procedure is called.  Such flushing might
+     block.
 
      This procedure will throw a 'c-write-error exception if passed a
      regular file with a file position pointer: there should be no need
@@ -2238,14 +2241,15 @@ module, so as not to create a hard dependency on guile-gnome.
      calls 'await' while waiting for input and will return the line of
      text received (without the terminating '\n' character).  The event
      loop will not be blocked by this procedure even if only individual
-     characters are available at any one time.  It is intended to be
-     called in a waitable procedure invoked by a-sync, and this
-     procedure is implemented using a-sync-glib-read-watch.  If an
-     end-of-file object is encountered which terminates a line of text,
-     a string containing the line of text will be returned (and from
-     version 0.3, if an end-of-file object is encountered without any
-     text, the end-of-file object is returned rather than an empty
-     string).
+     characters or part characters are available at any one time
+     (although if 'port' references a socket, it should be non-blocking
+     for this to be guaranteed).  It is intended to be called in a
+     waitable procedure invoked by a-sync, and this procedure is
+     implemented using a-sync-glib-read-watch.  If an end-of-file object
+     is encountered which terminates a line of text, a string containing
+     the line of text will be returned (and from version 0.3, if an
+     end-of-file object is encountered without any text, the end-of-file
+     object is returned rather than an empty string).
 
      For the reasons explained in the documentation on
      a-sync-glib-read-watch, this procedure only works correctly if the
@@ -2294,6 +2298,46 @@ module, so as not to create a hard dependency on guile-gnome.
           	  (g-main-loop-quit main-loop)))
           (g-main-loop-run main-loop)
 
+ -- Scheme Procedure: await-glib-getblock await resume port size
+     This is a convenience procedure for use with a glib main loop,
+     which will start a read watch on 'port' for a block of data, such
+     as a binary record, of size 'size'.  It calls 'await' while waiting
+     for input and will return a pair, normally comprising as its car a
+     bytevector of length 'size' containing the data, and as its cdr the
+     number of bytes received (which will be the same as 'size' unless
+     an end-of-file object was encountered part way through receiving
+     the data).  The event loop will not be blocked by this procedure
+     even if only individual bytes are available at any one time
+     (although if 'port' references a socket, it should be non-blocking
+     for this to be guaranteed).  It is intended to be called in a
+     waitable procedure invoked by a-sync, and this procedure is
+     implemented using a-sync-glib-read-watch.
+
+     As mentioned above, if an end-of-file object is encountered after
+     receipt of some but not 'size' bytes, then a bytevector of length
+     'size' will be returned as car and the actual (lesser) number of
+     bytes inserted in it as cdr.  If an end-of-file object is
+     encountered without any bytes of data, a pair with eof-object as
+     car and #f as cdr will be returned.
+
+     For the reasons explained in the documentation on
+     a-sync-glib-read-watch, this procedure only works correctly if the
+     port passed to the 'port' argument has buffering switched off (say
+     by using the open-file, fdopen or duplicate-port procedure with the
+     '0' mode option, or by calling setvbuf).  This makes the procedure
+     less useful than would otherwise be the case.
+
+     This procedure must (like the a-sync procedure) be called in the
+     same thread as that in which the default glib main loop runs.
+
+     Exceptions may propagate out of this procedure if they arise while
+     setting up (that is, before the first call to 'await' is made),
+     which shouldn't happen unless memory is exhausted.  Subsequent
+     exceptions (say, because of port errors) will propagate out of
+     g-main-loop-run.
+
+     This procedure is first available in version 0.11 of this library.
+
  -- Scheme Procedure: a-sync-glib-write-watch resume fd proc
      This is a convenience procedure for use with a glib main loop,
      which will run 'proc' in the default glib main loop whenever the
@@ -2332,65 +2376,105 @@ module, so as not to create a hard dependency on guile-gnome.
      locally, it will propagate out of g-main-loop-run.
 
      As an example of how to use a-sync-glib-write-watch, here is the
-     implementation of await-glib-put-string:
-          (define (await-glib-put-string await resume port text)
+     implementation of await-glib-put-bytevector:
+          (define (await-glib-put-bytevector await resume port bv)
             (define index 0)
-            (define bv
-              (let ((encoding (or (port-encoding port)
-          			(fluid-ref %default-port-encoding)
-          			"ISO-8859-1"))
-          	  (conversion-strategy (port-conversion-strategy port)))
-                (iconv:string->bytevector text encoding conversion-strategy)))
             (define length (bytevector-length bv))
-            (define id (a-sync-glib-write-watch resume
-          				      (port->fdes port)
-          				      (lambda (ioc status)
-          					(catch 'system-error
-          					  (lambda ()
-          					    (let next ()
-          					      (if (= index length)
-          						  #f
-          						  (begin
-          						    (put-u8 port (bytevector-u8-ref bv index))
-          						    (set! index (1+ index))
-          						    (next)))))
-          					  (lambda args
-          					    (if (or (= EAGAIN (system-error-errno args))
-          						    (and (defined? 'EWOULDBLOCK)
-          							 (= EWOULDBLOCK (system-error-errno args))))
-          						'more
-          						(apply throw args)))))))
-            (let next ((res (await)))
-              (if (eq? res 'more)
-          	(next (await))
-          	(begin
-          	  (g-source-remove id)
-          	  (release-port-handle port)))))
+            (define fd (fileno port))
+            (_throw-exception-if-regular-file fd)
+            (letrec ((id (a-sync-glib-write-watch resume
+          					(port->fdes port)
+          					(lambda (ioc status)
+          					  (catch #t
+          					    (lambda ()
+          					      (set! index (+ index (c-write fd
+          									    bv
+          									    index
+          									    (- length index))))
+          					      (if (< index length)
+          						  'more
+          						  #f))
+          					    (lambda args
+          					      (g-source-remove id)
+          					      (release-port-handle port)
+          					      (apply throw args)))))))
+              (let next ((res (await)))
+                (if (eq? res 'more)
+          	  (next (await))
+          	  (begin
+          	    (g-source-remove id)
+          	    (release-port-handle port))))))
 
- -- Scheme Procedure: await-glib-put-string await resume port text
+ -- Scheme Procedure: await-glib-put-bytevector await resume port bv
      This is a convenience procedure which will start a write watch on
-     'port' for writing a string to the port.  It calls 'await' while
-     waiting for output to become available.  Provided 'port' is a
-     non-blocking port, the event loop will not be blocked by this
-     procedure even if only individual characters can be written at any
-     one time.  It is intended to be called in a waitable procedure
+     'port' for writing the contents of a bytevector 'bv' to the port.
+     It calls 'await' while waiting for output to become available.  The
+     event loop will not be blocked by this procedure even if only
+     individual bytes can be written at any one time (although if 'port'
+     references a socket, it should be non-blocking for this to be
+     guaranteed).  It is intended to be called in a waitable procedure
      invoked by a-sync, and this procedure is implemented using
      a-sync-glib-write-watch.
 
-     'port' must be a non-blocking port, or this procedure may block the
-     event loop when writing.  In addition, it should be unbuffered (say
-     by using the open-file, fdopen or duplicate-port procedure with the
-     '0' mode option, or by calling setvbuf), or any buffer flushing
-     operation may also block.
+     For reasons of efficiency, this procedure by-passes the port's
+     output buffer (if any) and sends the output to the underlying file
+     descriptor directly.  This means that it is most convenient for use
+     with unbuffered ports.  However, this procedure can be used with a
+     port with buffered output, but if that is done and the port has
+     previously been used for output by a procedure other than c-write
+     or an await-glib-put* procedure, then it should be flushed before
+     this procedure is called.  Such flushing might block.
+
+     This procedure will throw a 'c-write-error exception if passed a
+     regular file with a file position pointer: there should be no need
+     to use this procedure with regular files, because they cannot
+     normally block on write and are always signalled as ready.
 
      This procedure must (like the a-sync procedure) be called in the
      same thread as that in which the event loop runs.
 
      Exceptions may propagate out of this procedure if they arise while
      setting up (that is, before the first call to 'await' is made),
-     which shouldn't happen unless memory is exhausted or a conversion
-     error is encountered.  Subsequent exceptions (say, because of port
-     errors) will propagate out of event-loop-run!.
+     which shouldn't happen unless memory is exhausted or a regular file
+     is passed to this procedure.  Subsequent exceptions (say, because
+     of port errors) will propagate out of g-main-loop-run.
+
+     This procedure is first available in version 0.11 of this library.
+
+ -- Scheme Procedure: await-glib-put-string await resume port text
+     This is a convenience procedure which will start a write watch on
+     'port' for writing a string to the port.  It calls 'await' while
+     waiting for output to become available.  The event loop will not be
+     blocked by this procedure even if only individual characters or
+     part characters can be written at any one time (although if 'port'
+     references a socket, it should be non-blocking for this to be
+     guaranteed).  It is intended to be called in a waitable procedure
+     invoked by a-sync, and this procedure is implemented using
+     await-glib-put-bytevector.
+
+     For reasons of efficiency, this procedure by-passes the port's
+     output buffer (if any) and sends the output to the underlying file
+     descriptor directly.  This means that it is most convenient for use
+     with unbuffered ports.  However, this procedure can be used with a
+     port with buffered output, but if that is done and the port has
+     previously been used for output by a procedure other than c-write
+     or an await-glib-put* procedure, then it should be flushed before
+     this procedure is called.  Such flushing might block.
+
+     This procedure will throw a 'c-write-error exception if passed a
+     regular file with a file position pointer: there should be no need
+     to use this procedure with regular files, because they cannot
+     normally block on write and are always signalled as ready.
+
+     This procedure must (like the a-sync procedure) be called in the
+     same thread as that in which the event loop runs.
+
+     Exceptions may propagate out of this procedure if they arise while
+     setting up (that is, before the first call to 'await' is made),
+     which shouldn't happen unless memory is exhausted, a conversion
+     error is encountered or a regular file is passed to this procedure.
+     Subsequent exceptions (say, because of port errors) will propagate
+     out of g-main-loop-run.
 
      The bytes to be sent will be converted from the passed in string
      representation using the encoding of 'port' if a port encoding has
@@ -2458,13 +2542,14 @@ coroutines. module.
      await-task-in-thread!, await-task-in-event-loop!, await-generator!,
      await-generator-in-thread!, await-generator-in-event-loop!,
      await-timeout!, await-getline!, await-geteveryline!,
-     await-getsomelines!  and await-put-string!  procedures provided by
-     the *note (a-sync event-loop): event loop. module are
-     'compose-a-sync'-capable.  In addition, to make an ordinary body of
-     code which does not block (and which does not need to invoke
-     a-sync's await procedure) usable by compose-a-sync, the no-await
-     macro can be used to generate a 'compose-a-sync'-capable procedure
-     for it (see below).
+     await-getsomelines!, await-getblock!, await-geteveryblock!,
+     await-getsomeblocks!, await-put-bytevector!  and await-put-string!
+     procedures provided by the *note (a-sync event-loop): event loop.
+     module are 'compose-a-sync'-capable.  In addition, to make an
+     ordinary body of code which does not block (and which does not need
+     to invoke a-sync's await procedure) usable by compose-a-sync, the
+     no-await macro can be used to generate a 'compose-a-sync'-capable
+     procedure for it (see below).
 
      Each binding is initialized as if sequentially (although it is done
      asynchronously on the relevant event loop).  An initialization does
@@ -2486,10 +2571,11 @@ coroutines. module.
 
      The await-glib-task, await-glib-task-in-thread,
      await-glib-generator, await-glib-generator-in-thread,
-     await-glib-timeout, await-glib-getline and await-glib-put-string
-     procedures in the *note (a-sync gnome-glib): gnome glib. module
-     also meet the 'compose-a-sync'-capable requirements.  Here is the
-     same example using those procedures:
+     await-glib-timeout, await-glib-getline, await-glib-getblock,
+     await-glib-put-bytevector and await-glib-put-string procedures in
+     the *note (a-sync gnome-glib): gnome glib. module also meet the
+     'compose-a-sync'-capable requirements.  Here is the same example
+     using those procedures:
 
           (define main-loop (g-main-loop-new #f #f))
           (compose-a-sync ((line (await-glib-getline (open-file-input-port "/dev/tty" (file-options) (buffer-mode none)))))
@@ -2535,9 +2621,9 @@ Tag Table:
 Node: Top85
 Node: overview1123
 Node: coroutines4061
-Node: event loop22012
-Node: monotonic time94694
-Node: gnome glib96128
-Node: compose123948
+Node: event loop22101
+Node: monotonic time94849
+Node: gnome glib96283
+Node: compose128809
 
 End Tag Table

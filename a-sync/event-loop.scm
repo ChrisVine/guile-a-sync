@@ -2157,7 +2157,8 @@
 ;; be used with a port with buffered output.  However, if that is done
 ;; and the port has previously been used for output by a procedure
 ;; other than c-write or an await-put* procedure, then it should be
-;; flushed before this procedure is called.
+;; flushed before this procedure is called.  Such flushing might
+;; block.
 ;;
 ;; This procedure will throw a 'c-write-error exception if passed a
 ;; regular file with a file position pointer: there should be no need
@@ -2256,7 +2257,8 @@
 ;; be used with a port with buffered output.  However, if that is done
 ;; and the port has previously been used for output by a procedure
 ;; other than c-write or an await-put* procedure, then it should be
-;; flushed before this procedure is called.
+;; flushed before this procedure is called.  Such flushing might
+;; block.
 ;;
 ;; This procedure will throw a 'c-write-error exception if passed a
 ;; regular file with a file position pointer: there should be no need
