@@ -28,11 +28,12 @@ non-blocking using the guile wrapper for the fcntl() system call in
 order to prevent a blocking read where it is not expected
 (EAGAIN/EWOULDBLOCK is handled correctly by the await-getline!,
 await-geteveryline! and await-getsomelines! procedures from version
-0.5, and by await-put-string!).  Secondly, with select() the file
-descriptor value of a port passed to the watch should not exceed
-FD_SETSIZE.  Normally, by default the maximum soft user limit for open
-files is the same as FD_SETSIZE, and it is best if this situation is
-retained by user code.
+0.5, and by await-getblock!, await-geteveryblock!,
+await-getsomeblocks, await-put-bytevector! and await-put-string!).
+Secondly, with select() the file descriptor value of a port passed to
+the watch should not exceed FD_SETSIZE.  Normally, by default the
+maximum soft user limit for open files is the same as FD_SETSIZE, and
+it is best if this situation is retained by user code.
 
 Where a file watch on a file descriptor or port has been added with
 event-loop-add-read-watch! or event-loop-add-write-watch!, the event

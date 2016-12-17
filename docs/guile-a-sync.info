@@ -494,10 +494,12 @@ using the guile wrapper for the fcntl() system call in order to prevent
 a blocking read where it is not expected (EAGAIN/EWOULDBLOCK is handled
 correctly by the await-getline!, await-geteveryline!  and
 await-getsomelines!  procedures from version 0.5, and by
-await-put-string!).  Secondly, with select() the file descriptor value
-of a port passed to the watch should not exceed FD_SETSIZE. Normally, by
-default the maximum soft user limit for open files is the same as
-FD_SETSIZE, and it is best if this situation is retained by user code.
+await-getblock!, await-geteveryblock!, await-getsomeblocks,
+await-put-bytevector!  and await-put-string!).  Secondly, with select()
+the file descriptor value of a port passed to the watch should not
+exceed FD_SETSIZE. Normally, by default the maximum soft user limit for
+open files is the same as FD_SETSIZE, and it is best if this situation
+is retained by user code.
 
    Where a file watch on a file descriptor or port has been added with
 event-loop-add-read-watch!  or event-loop-add-write-watch!, the event
@@ -2634,8 +2636,8 @@ Node: Top85
 Node: overview1123
 Node: coroutines4061
 Node: event loop22101
-Node: monotonic time95435
-Node: gnome glib96869
-Node: compose129395
+Node: monotonic time95522
+Node: gnome glib96956
+Node: compose129482
 
 End Tag Table
