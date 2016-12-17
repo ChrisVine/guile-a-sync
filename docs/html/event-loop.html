@@ -1185,6 +1185,11 @@ end-of-file object or #f respectively.
                       (fcntl [port] F_GETFL)))
 </pre></div>
 
+<p>For efficiency reasons, this procedure passes its internal bytevector
+buffer to &rsquo;proc&rsquo; as proc&rsquo;s first argument and, when &rsquo;proc&rsquo; returns,
+re-uses it.  Therefore, if &rsquo;proc&rsquo; stores its first argument for use
+after &rsquo;proc&rsquo; has returned, it should store it by copying it.
+</p>
 <p>The &rsquo;loop&rsquo; argument is optional: this procedure operates on the event
 loop passed in as an argument, or if none is passed (or #f is passed),
 on the default event loop.
@@ -1240,6 +1245,11 @@ passed to the escape continuation will be returned.
                       (fcntl [port] F_GETFL)))
 </pre></div>
 
+<p>For efficiency reasons, this procedure passes its internal bytevector
+buffer to &rsquo;proc&rsquo; as proc&rsquo;s first argument and, when &rsquo;proc&rsquo; returns,
+re-uses it.  Therefore, if &rsquo;proc&rsquo; stores its first argument for use
+after &rsquo;proc&rsquo; has returned, it should store it by copying it.
+</p>
 <p>The &rsquo;loop&rsquo; argument is optional: this procedure operates on the event
 loop passed in as an argument, or if none is passed (or #f is passed),
 on the default event loop.

@@ -1543,6 +1543,12 @@ using event-post!.
           (fcntl [port] F_SETFL (logior O_NONBLOCK
                                 (fcntl [port] F_GETFL)))
 
+     For efficiency reasons, this procedure passes its internal
+     bytevector buffer to 'proc' as proc's first argument and, when
+     'proc' returns, re-uses it.  Therefore, if 'proc' stores its first
+     argument for use after 'proc' has returned, it should store it by
+     copying it.
+
      The 'loop' argument is optional: this procedure operates on the
      event loop passed in as an argument, or if none is passed (or #f is
      passed), on the default event loop.
@@ -1594,6 +1600,12 @@ using event-post!.
 
           (fcntl [port] F_SETFL (logior O_NONBLOCK
                                 (fcntl [port] F_GETFL)))
+
+     For efficiency reasons, this procedure passes its internal
+     bytevector buffer to 'proc' as proc's first argument and, when
+     'proc' returns, re-uses it.  Therefore, if 'proc' stores its first
+     argument for use after 'proc' has returned, it should store it by
+     copying it.
 
      The 'loop' argument is optional: this procedure operates on the
      event loop passed in as an argument, or if none is passed (or #f is
@@ -2622,8 +2634,8 @@ Node: Top85
 Node: overview1123
 Node: coroutines4061
 Node: event loop22101
-Node: monotonic time94849
-Node: gnome glib96283
-Node: compose128809
+Node: monotonic time95435
+Node: gnome glib96869
+Node: compose129395
 
 End Tag Table
