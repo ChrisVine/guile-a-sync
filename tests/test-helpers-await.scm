@@ -17,11 +17,11 @@
 (use-modules (a-sync coroutines)
 	     (a-sync event-loop)
 	     (a-sync compose)
-	     (ice-9 rdelim)     ;; for write-line and read-string
-	     (ice-9 control)    ;; for call/ec
-	     (rnrs base)        ;; for assert
-	     (rnrs bytevectors) ;; for bytevectors
-	     (rnrs io ports))   ;; for put-bytevector
+	     (ice-9 rdelim)       ;; for write-line and read-string
+	     (ice-9 control)      ;; for call/ec
+	     (ice-9 binary-ports) ;; for put-bytevector
+	     (rnrs base)          ;; for assert
+	     (rnrs bytevectors))  ;; for bytevectors
 
 ;; helpers
 
@@ -49,6 +49,7 @@
 			  (bytevector-s8-ref bv2 index))
 		       (loop (1+ index)))
 		      ((k #f)))))))))
+
 ;; Test 1: await-task!
 
 (define main-loop (make-event-loop))
