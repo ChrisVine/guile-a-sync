@@ -1103,6 +1103,11 @@ A port can be made non-blocking with this:
                       (fcntl [port] F_GETFL)))
 @end example
 
+For efficiency reasons, this procedure passes its internal bytevector
+buffer to 'proc' as proc's first argument and, when 'proc' returns,
+re-uses it.  Therefore, if 'proc' stores its first argument for use
+after 'proc' has returned, it should store it by copying it.
+
 The 'loop' argument is optional: this procedure operates on the event
 loop passed in as an argument, or if none is passed (or #f is passed),
 on the default event loop.
@@ -1156,6 +1161,11 @@ A port can be made non-blocking with this:
 (fcntl [port] F_SETFL (logior O_NONBLOCK
                       (fcntl [port] F_GETFL)))
 @end example
+
+For efficiency reasons, this procedure passes its internal bytevector
+buffer to 'proc' as proc's first argument and, when 'proc' returns,
+re-uses it.  Therefore, if 'proc' stores its first argument for use
+after 'proc' has returned, it should store it by copying it.
 
 The 'loop' argument is optional: this procedure operates on the event
 loop passed in as an argument, or if none is passed (or #f is passed),
