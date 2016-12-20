@@ -1,4 +1,4 @@
-@node event loop,monotonic time,coroutines,Top
+@node event loop,sockets,coroutines,Top
 
 The (a-sync event-loop) module provides an event loop for asynchronous
 operations.  The event loop does not of itself start any new threads.
@@ -1308,8 +1308,8 @@ errors) will propagate out of event-loop-run!.
 This procedure is first available in version 0.11 of this library.
 
 An example of the use of await-put-string!, which is implemented using
-this procedure, can be found in the example-socket.scm file in the
-docs directory.
+this procedure, can be found in the example-client.scm and
+example-server.scm files in the docs directory.
 @end deffn
 
 @deffn {Scheme Procedure} await-put-string! await resume [loop] port text
@@ -1377,7 +1377,7 @@ the string.
 This procedure is first available in version 0.10 of this library.
 
 An example of the use of this procedure can be found in the
-example-socket.scm file in the docs directory.
+example-client.scm and example-server.scm files in the docs directory.
 @end deffn
 
 @deffn {Scheme Procedure} c-write fd bv begin count

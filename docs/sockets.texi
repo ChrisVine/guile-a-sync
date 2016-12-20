@@ -1,0 +1,68 @@
+@node sockets,monotonic time,event loop,Top
+
+This (a-sync compose) module provides asynchronous accept and connect
+procedures for sockets.
+
+@deffn {Scheme Procedure} await-accept! await resume [loop] sock
+This is a convenience procedure which will start a watch on listening
+socket 'sock' for a connection.  'sock' must be a non-blocking socket
+port.  This procedure wraps the guile 'accept' procedure and therefore
+returns a pair, comprising as car a connection socket, and as cdr a
+socket address object containing particulars of the address of the
+remote connection.  The event loop will not be blocked by this
+procedure even though no connection is immediately pending, provided
+that 'sock' is non-blocking.  It is intended to be called in a
+waitable procedure invoked by a-sync.
+
+A socket port can be made non-blocking with this:
+
+@example
+(fcntl [port] F_SETFL (logior O_NONBLOCK
+                      (fcntl [port] F_GETFL)))
+@end example
+
+The 'loop' argument is optional: this procedure operates on the event
+loop passed in as an argument, or if none is passed (or #f is passed),
+on the default event loop.
+
+This procedure must (like the a-sync procedure) be called in the same
+thread as that in which the event loop runs.
+
+Exceptions may propagate out of this procedure if they arise from
+socket errors when first calling the 'accept' procedure.  Subsequent
+exceptions will propagate out of event-loop-run!.
+
+This procedure is first available in version 0.12 of this library.
+@end deffn
+
+@deffn {Scheme Procedure} await-connect! await resume [loop] sock . args
+This is a convenience procedure which will connect socket 'sock' to a
+remote host.  Particulars of the remote host are given by 'args' which
+are the arguments (other than the 'sock') taken by guile's 'connect'
+procedure, which this procedure wraps.  'sock' must be a non-blocking
+socket port.  This procedure will return when the connection has been
+effected, but the event loop will not be blocked even though the
+connection cannot immediately be made, provided that 'sock' is
+non-blocking.  It is intended to be called in a waitable procedure
+invoked by a-sync.
+
+A socket port can be made non-blocking with this:
+
+@example
+(fcntl [port] F_SETFL (logior O_NONBLOCK
+                      (fcntl [port] F_GETFL)))
+@end example
+
+The 'loop' argument is optional: this procedure operates on the event
+loop passed in as an argument, or if none is passed (or #f is passed),
+on the default event loop.
+
+This procedure must (like the a-sync procedure) be called in the same
+thread as that in which the event loop runs.
+
+Exceptions may propagate out of this procedure if they arise from
+socket errors when calling the 'connect' procedure.  In the absence of
+memory exhaustion this procedure should not otherwise throw.
+
+This procedure is first available in version 0.12 of this library.
+@end deffn

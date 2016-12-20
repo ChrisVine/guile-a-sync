@@ -1,0 +1,134 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- Created by GNU Texinfo 6.3, http://www.gnu.org/software/texinfo/ -->
+<head>
+<title>guile-a-sync: sockets</title>
+
+<meta name="description" content="guile-a-sync: sockets">
+<meta name="keywords" content="guile-a-sync: sockets">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="makeinfo">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link href="index.html#Top" rel="start" title="Top">
+<link href="index.html#Top" rel="up" title="Top">
+<link href="monotonic-time.html#monotonic-time" rel="next" title="monotonic time">
+<link href="event-loop.html#event-loop" rel="prev" title="event loop">
+<style type="text/css">
+<!--
+a.summary-letter {text-decoration: none}
+blockquote.indentedblock {margin-right: 0em}
+blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
+blockquote.smallquotation {font-size: smaller}
+div.display {margin-left: 3.2em}
+div.example {margin-left: 3.2em}
+div.lisp {margin-left: 3.2em}
+div.smalldisplay {margin-left: 3.2em}
+div.smallexample {margin-left: 3.2em}
+div.smalllisp {margin-left: 3.2em}
+kbd {font-style: oblique}
+pre.display {font-family: inherit}
+pre.format {font-family: inherit}
+pre.menu-comment {font-family: serif}
+pre.menu-preformatted {font-family: serif}
+pre.smalldisplay {font-family: inherit; font-size: smaller}
+pre.smallexample {font-size: smaller}
+pre.smallformat {font-family: inherit; font-size: smaller}
+pre.smalllisp {font-size: smaller}
+span.nolinebreak {white-space: nowrap}
+span.roman {font-family: initial; font-weight: normal}
+span.sansserif {font-family: sans-serif; font-weight: normal}
+ul.no-bullet {list-style: none}
+-->
+</style>
+
+
+</head>
+
+<body lang="en">
+<a name="sockets"></a>
+<div class="header">
+<p>
+Next: <a href="monotonic-time.html#monotonic-time" accesskey="n" rel="next">monotonic time</a>, Previous: <a href="event-loop.html#event-loop" accesskey="p" rel="prev">event loop</a>, Up: <a href="index.html#Top" accesskey="u" rel="up">Top</a> &nbsp; </p>
+</div>
+<hr>
+<h4 class="node-heading">sockets</h4>
+
+<p>This (a-sync compose) module provides asynchronous accept and connect
+procedures for sockets.
+</p>
+<dl>
+<dt><a name="index-await_002daccept_0021"></a>Scheme Procedure: <strong>await-accept!</strong> <em>await resume [loop] sock</em></dt>
+<dd><p>This is a convenience procedure which will start a watch on listening
+socket &rsquo;sock&rsquo; for a connection.  &rsquo;sock&rsquo; must be a non-blocking socket
+port.  This procedure wraps the guile &rsquo;accept&rsquo; procedure and therefore
+returns a pair, comprising as car a connection socket, and as cdr a
+socket address object containing particulars of the address of the
+remote connection.  The event loop will not be blocked by this
+procedure even though no connection is immediately pending, provided
+that &rsquo;sock&rsquo; is non-blocking.  It is intended to be called in a
+waitable procedure invoked by a-sync.
+</p>
+<p>A socket port can be made non-blocking with this:
+</p>
+<div class="example">
+<pre class="example">(fcntl [port] F_SETFL (logior O_NONBLOCK
+                      (fcntl [port] F_GETFL)))
+</pre></div>
+
+<p>The &rsquo;loop&rsquo; argument is optional: this procedure operates on the event
+loop passed in as an argument, or if none is passed (or #f is passed),
+on the default event loop.
+</p>
+<p>This procedure must (like the a-sync procedure) be called in the same
+thread as that in which the event loop runs.
+</p>
+<p>Exceptions may propagate out of this procedure if they arise from
+socket errors when first calling the &rsquo;accept&rsquo; procedure.  Subsequent
+exceptions will propagate out of event-loop-run!.
+</p>
+<p>This procedure is first available in version 0.12 of this library.
+</p></dd></dl>
+
+<dl>
+<dt><a name="index-await_002dconnect_0021"></a>Scheme Procedure: <strong>await-connect!</strong> <em>await resume [loop] sock . args</em></dt>
+<dd><p>This is a convenience procedure which will connect socket &rsquo;sock&rsquo; to a
+remote host.  Particulars of the remote host are given by &rsquo;args&rsquo; which
+are the arguments (other than the &rsquo;sock&rsquo;) taken by guile&rsquo;s &rsquo;connect&rsquo;
+procedure, which this procedure wraps.  &rsquo;sock&rsquo; must be a non-blocking
+socket port.  This procedure will return when the connection has been
+effected, but the event loop will not be blocked even though the
+connection cannot immediately be made, provided that &rsquo;sock&rsquo; is
+non-blocking.  It is intended to be called in a waitable procedure
+invoked by a-sync.
+</p>
+<p>A socket port can be made non-blocking with this:
+</p>
+<div class="example">
+<pre class="example">(fcntl [port] F_SETFL (logior O_NONBLOCK
+                      (fcntl [port] F_GETFL)))
+</pre></div>
+
+<p>The &rsquo;loop&rsquo; argument is optional: this procedure operates on the event
+loop passed in as an argument, or if none is passed (or #f is passed),
+on the default event loop.
+</p>
+<p>This procedure must (like the a-sync procedure) be called in the same
+thread as that in which the event loop runs.
+</p>
+<p>Exceptions may propagate out of this procedure if they arise from
+socket errors when calling the &rsquo;connect&rsquo; procedure.  In the absence of
+memory exhaustion this procedure should not otherwise throw.
+</p>
+<p>This procedure is first available in version 0.12 of this library.
+</p></dd></dl>
+<hr>
+<div class="header">
+<p>
+Next: <a href="monotonic-time.html#monotonic-time" accesskey="n" rel="next">monotonic time</a>, Previous: <a href="event-loop.html#event-loop" accesskey="p" rel="prev">event loop</a>, Up: <a href="index.html#Top" accesskey="u" rel="up">Top</a> &nbsp; </p>
+</div>
+
+
+
+</body>
+</html>
