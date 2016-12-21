@@ -1345,18 +1345,18 @@ implementation of await-put-bytevector!:
 <dt><a name="index-await_002dput_002dbytevector_0021"></a>Scheme Procedure: <strong>await-put-bytevector!</strong> <em>await resume [loop] port bv</em></dt>
 <dd><p>This is a convenience procedure for use in an event loop, which will
 start a write watch on &rsquo;port&rsquo; for writing the contents of a bytevector
-&rsquo;bv&rsquo; to the port.  It calls &rsquo;await&rsquo; while waiting for output to become
-available.  The event loop will not be blocked by this procedure even
-if only individual bytes can be written at any one time (although if
-&rsquo;port&rsquo; references a socket, it should be non-blocking for this to be
-guaranteed).  It is intended to be called in a waitable procedure
-invoked by a-sync, and this procedure is implemented using
-a-sync-write-watch!.  If an exceptional condition (&rsquo;excpt) is
-encountered, #f will be returned, otherwise #t will be returned (but
-an exceptional condition should never be encountered on an output
-port).  The &rsquo;loop&rsquo; argument is optional: this procedure operates on
-the event loop passed in as an argument, or if none is passed (or #f
-is passed), on the default event loop.
+&rsquo;bv&rsquo; to the port, which must be non-blocking.  It calls &rsquo;await&rsquo; while
+waiting for output to become available.  Provided &rsquo;port&rsquo; is a
+non-blocking port, the event loop will not be blocked by this
+procedure even if only individual bytes can be written at any one
+time.  It is intended to be called in a waitable procedure invoked by
+a-sync, and this procedure is implemented using a-sync-write-watch!.
+If an exceptional condition (&rsquo;excpt) is encountered, #f will be
+returned, otherwise #t will be returned (but an exceptional condition
+should never be encountered on an output port).  The &rsquo;loop&rsquo; argument
+is optional: this procedure operates on the event loop passed in as an
+argument, or if none is passed (or #f is passed), on the default event
+loop.
 </p>
 <p>A port can be made non-blocking with this:
 </p>
@@ -1400,19 +1400,19 @@ example-server.scm files in the docs directory.
 <dl>
 <dt><a name="index-await_002dput_002dstring_0021"></a>Scheme Procedure: <strong>await-put-string!</strong> <em>await resume [loop] port text</em></dt>
 <dd><p>This is a convenience procedure for use in an event loop, which will
-start a write watch on &rsquo;port&rsquo; for writing a string to the port.  It
-calls &rsquo;await&rsquo; while waiting for output to become available.  The event
+start a write watch on &rsquo;port&rsquo; for writing a string to the port, which
+must be non-blocking.  It calls &rsquo;await&rsquo; while waiting for output to
+become available.  Provided &rsquo;port&rsquo; is a non-blocking port, the event
 loop will not be blocked by this procedure even if only individual
-characters or part characters can be written at any one time (although
-if &rsquo;port&rsquo; references a socket, it should be non-blocking for this to
-be guaranteed).  It is intended to be called in a waitable procedure
-invoked by a-sync, and this procedure is implemented using
-await-put-bytevector!.  If an exceptional condition (&rsquo;excpt) is
-encountered, #f will be returned, otherwise #t will be returned (but
-an exceptional condition should never be encountered on an output
-port).  The &rsquo;loop&rsquo; argument is optional: this procedure operates on
-the event loop passed in as an argument, or if none is passed (or #f
-is passed), on the default event loop.
+characters or part characters can be written at any one time.  It is
+intended to be called in a waitable procedure invoked by a-sync, and
+this procedure is implemented using await-put-bytevector!.  If an
+exceptional condition (&rsquo;excpt) is encountered, #f will be returned,
+otherwise #t will be returned (but an exceptional condition should
+never be encountered on an output port).  The &rsquo;loop&rsquo; argument is
+optional: this procedure operates on the event loop passed in as an
+argument, or if none is passed (or #f is passed), on the default event
+loop.
 </p>
 <p>A port can be made non-blocking with this:
 </p>

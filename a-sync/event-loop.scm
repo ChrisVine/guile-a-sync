@@ -2146,19 +2146,18 @@
 ;;   (await-put-bytevector! await resume [loop] port bv)
 ;;
 ;; This procedure will start a write watch on 'port' for writing the
-;; contents of a bytevector 'bv' to the port.  It calls 'await' while
-;; waiting for output to become available.  The event loop will not be
-;; blocked by this procedure even if only individual bytes can be
-;; written at any one time (although if 'port' references a socket, it
-;; should be non-blocking for this to be guaranteed).  It is intended
-;; to be called in a waitable procedure invoked by a-sync, and this
-;; procedure is implemented using a-sync-write-watch!.  If an
-;; exceptional condition ('excpt) is encountered, #f will be returned,
-;; otherwise #t will be returned (but an exceptional condition should
-;; never be encountered on an output port).  The 'loop' argument is
-;; optional: this procedure operates on the event loop passed in as an
-;; argument, or if none is passed (or #f is passed), on the default
-;; event loop.
+;; contents of a bytevector 'bv' to the port, which must be
+;; non-blocking.  It calls 'await' while waiting for output to become
+;; available.  Provided 'port' is a non-blocking port, the event loop
+;; will not be blocked by this procedure even if only individual bytes
+;; can be written at any one time.  It is intended to be called in a
+;; waitable procedure invoked by a-sync, and this procedure is
+;; implemented using a-sync-write-watch!.  If an exceptional condition
+;; ('excpt) is encountered, #f will be returned, otherwise #t will be
+;; returned (but an exceptional condition should never be encountered
+;; on an output port).  The 'loop' argument is optional: this
+;; procedure operates on the event loop passed in as an argument, or
+;; if none is passed (or #f is passed), on the default event loop.
 ;;
 ;; For reasons of efficiency, this procedure by-passes the port's
 ;; output buffer and sends the output to the underlying file
@@ -2246,19 +2245,18 @@
 ;;   (await-put-string! await resume [loop] port text)
 ;;
 ;; This procedure will start a write watch on 'port' for writing a
-;; string to the port.  It calls 'await' while waiting for output to
-;; become available.  The event loop will not be blocked by this
+;; string to the port, which must be non-blocking.  It calls 'await'
+;; while waiting for output to become available.  Provided 'port' is a
+;; non-blocking port, the event loop will not be blocked by this
 ;; procedure even if only individual characters or part characters can
-;; be written at any one time (although if 'port' references a socket,
-;; it should be non-blocking for this to be guaranteed).  It is
-;; intended to be called in a waitable procedure invoked by a-sync,
-;; and this procedure is implemented using await-put-bytevector!.  If
-;; an exceptional condition ('excpt) is encountered, #f will be
-;; returned, otherwise #t will be returned (but an exceptional
-;; condition should never be encountered on an output port).  The
-;; 'loop' argument is optional: this procedure operates on the event
-;; loop passed in as an argument, or if none is passed (or #f is
-;; passed), on the default event loop.
+;; be written at any one time.  It is intended to be called in a
+;; waitable procedure invoked by a-sync, and this procedure is
+;; implemented using await-put-bytevector!.  If an exceptional
+;; condition ('excpt) is encountered, #f will be returned, otherwise
+;; #t will be returned (but an exceptional condition should never be
+;; encountered on an output port).  The 'loop' argument is optional:
+;; this procedure operates on the event loop passed in as an argument,
+;; or if none is passed (or #f is passed), on the default event loop.
 ;;
 ;; For reasons of efficiency, this procedure by-passes the port's
 ;; output buffer and sends the output to the underlying file

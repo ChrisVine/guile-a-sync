@@ -1698,19 +1698,18 @@ using event-post!.
  -- Scheme Procedure: await-put-bytevector! await resume [loop] port bv
      This is a convenience procedure for use in an event loop, which
      will start a write watch on 'port' for writing the contents of a
-     bytevector 'bv' to the port.  It calls 'await' while waiting for
-     output to become available.  The event loop will not be blocked by
-     this procedure even if only individual bytes can be written at any
-     one time (although if 'port' references a socket, it should be
-     non-blocking for this to be guaranteed).  It is intended to be
-     called in a waitable procedure invoked by a-sync, and this
-     procedure is implemented using a-sync-write-watch!.  If an
-     exceptional condition ('excpt) is encountered, #f will be returned,
-     otherwise #t will be returned (but an exceptional condition should
-     never be encountered on an output port).  The 'loop' argument is
-     optional: this procedure operates on the event loop passed in as an
-     argument, or if none is passed (or #f is passed), on the default
-     event loop.
+     bytevector 'bv' to the port, which must be non-blocking.  It calls
+     'await' while waiting for output to become available.  Provided
+     'port' is a non-blocking port, the event loop will not be blocked
+     by this procedure even if only individual bytes can be written at
+     any one time.  It is intended to be called in a waitable procedure
+     invoked by a-sync, and this procedure is implemented using
+     a-sync-write-watch!.  If an exceptional condition ('excpt) is
+     encountered, #f will be returned, otherwise #t will be returned
+     (but an exceptional condition should never be encountered on an
+     output port).  The 'loop' argument is optional: this procedure
+     operates on the event loop passed in as an argument, or if none is
+     passed (or #f is passed), on the default event loop.
 
      A port can be made non-blocking with this:
 
@@ -1752,19 +1751,18 @@ using event-post!.
  -- Scheme Procedure: await-put-string! await resume [loop] port text
      This is a convenience procedure for use in an event loop, which
      will start a write watch on 'port' for writing a string to the
-     port.  It calls 'await' while waiting for output to become
-     available.  The event loop will not be blocked by this procedure
-     even if only individual characters or part characters can be
-     written at any one time (although if 'port' references a socket, it
-     should be non-blocking for this to be guaranteed).  It is intended
-     to be called in a waitable procedure invoked by a-sync, and this
-     procedure is implemented using await-put-bytevector!.  If an
-     exceptional condition ('excpt) is encountered, #f will be returned,
-     otherwise #t will be returned (but an exceptional condition should
-     never be encountered on an output port).  The 'loop' argument is
-     optional: this procedure operates on the event loop passed in as an
-     argument, or if none is passed (or #f is passed), on the default
-     event loop.
+     port, which must be non-blocking.  It calls 'await' while waiting
+     for output to become available.  Provided 'port' is a non-blocking
+     port, the event loop will not be blocked by this procedure even if
+     only individual characters or part characters can be written at any
+     one time.  It is intended to be called in a waitable procedure
+     invoked by a-sync, and this procedure is implemented using
+     await-put-bytevector!.  If an exceptional condition ('excpt) is
+     encountered, #f will be returned, otherwise #t will be returned
+     (but an exceptional condition should never be encountered on an
+     output port).  The 'loop' argument is optional: this procedure
+     operates on the event loop passed in as an argument, or if none is
+     passed (or #f is passed), on the default event loop.
 
      A port can be made non-blocking with this:
 
@@ -2703,9 +2701,9 @@ Node: Top85
 Node: overview1240
 Node: coroutines4178
 Node: event loop22218
-Node: sockets95685
-Node: monotonic time98755
-Node: gnome glib100186
-Node: compose132712
+Node: sockets95623
+Node: monotonic time98693
+Node: gnome glib100124
+Node: compose132650
 
 End Tag Table
