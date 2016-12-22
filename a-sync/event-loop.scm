@@ -2298,54 +2298,60 @@
     ((await resume port bv) (await-put-bytevector! await resume #f port bv))
     ((await resume loop port bv)
      (define length (bytevector-length bv))
-     (define index 0)
      (_throw-exception-if-regular-file (fileno port))
 
-     ;; we watch on the file descriptor and not the port, because we
-     ;; do not want buffering to be taken into account in determining
-     ;; whether the port is ready for output
-     (let ((fd (port->fdes port)))
-       (a-sync-write-watch! resume
-			    fd
-			    (lambda (status)
-			      ;; if this procedure throws an
-			      ;; exception, the increment of the
-			      ;; revealed count of fd will not be
-			      ;; decremented because the next loop
-			      ;; below will not complete - so deal
-			      ;; with it here (it will also not be
-			      ;; decremented if the initial call to
-			      ;; a-sync-write-watch! fails because of
-			      ;; memory exhaustion, but that spells
-			      ;; the end of the program anyway).  An
-			      ;; exception leaving this procedure will
-			      ;; cause the event loop to be reset
-			      ;; automatically, so we don't need to
-			      ;; bother with
-			      ;; event-loop-remove-write-watch!
-			      (catch #t
-				(lambda ()
-				  (if (eq? status 'excpt)
-				      #f
-				      (begin
-					(set! index (+ index (c-write fd
-								      bv
-								      index
-								      (- length index))))
-					(if (< index length)
-					    'more
-					    #t))))
-				(lambda args
-				  (release-port-handle port)
-				  (apply throw args))))
-			    loop)
-       (let next ((res (await)))
-	 (if (eq? res 'more)
-	     (next (await))
-	     (begin
-	       (event-loop-remove-write-watch! fd loop)
-	       (release-port-handle port)
-	       res)))))))
+     (let ((index (c-write (fileno port) bv 0 length)))
+     ;; for testing
+     ;;(let ((index 0))
+       ;; set up write watch if we haven't written everything
+       (if (< index length)
+	   ;; we watch on the file descriptor and not the port, because
+	   ;; we do not want buffering to be taken into account in
+	   ;; determining whether the port is ready for output
+	   (let ((fd (port->fdes port)))
+	     (a-sync-write-watch! resume
+				  fd
+				  (lambda (status)
+				    ;; if this procedure throws an
+				    ;; exception, the increment of the
+				    ;; revealed count of fd will not be
+				    ;; decremented because the next loop
+				    ;; below will not complete - so deal
+				    ;; with it here (it will also not be
+				    ;; decremented if the initial call
+				    ;; to a-sync-write-watch! fails
+				    ;; because of memory exhaustion, but
+				    ;; that spells the end of the
+				    ;; program anyway).  An exception
+				    ;; leaving this procedure will cause
+				    ;; the event loop to be reset
+				    ;; automatically, so we don't need
+				    ;; to bother with
+				    ;; event-loop-remove-write-watch!
+				    (catch #t
+				      (lambda ()
+					(if (eq? status 'excpt)
+					    #f
+					    (begin
+					      (set! index (+ index (c-write fd
+									    bv
+									    index
+									    (- length index))))
+					      (if (< index length)
+						  'more
+						  #t))))
+				      (lambda args
+					(release-port-handle port)
+					(apply throw args))))
+				  loop)
+	     (let next ((res (await)))
+	       (if (eq? res 'more)
+		   (next (await))
+		   (begin
+		     (event-loop-remove-write-watch! fd loop)
+		     (release-port-handle port)
+		     res))))
+	   #t)))))
 
 ;; This is a convenience procedure whose signature is:
 ;;
