@@ -221,7 +221,7 @@ The (a-sync coroutines) module provides the following procedures:
      module has await-task!, await-task-in-thread!,
      await-task-in-event-loop!, await-yield!, await-generator!,
      await-generator-in-thread!, await-generator-in-event-loop!,
-     await-timeout!, a-sync-read-watch!, await-getline!,
+     await-timeout!, await-sleep!, a-sync-read-watch!, await-getline!,
      await-geteveryline!, await-getsomelines!, await-getblock!,
      await-geteveryblock!, await-getsomeblocks!, a-sync-write-watch!,
      await-put-bytevector!  and await-put-string!  convenience
@@ -231,10 +231,11 @@ The (a-sync coroutines) module provides the following procedures:
      exceptions should always be handled locally in the waitable
      procedure (and if the callback might throw, in the callback also)
      if it is undesirable that uncaught exceptions propagate out of
-     event-loop-run!.  In the case of await-task-in-thread!, that
-     procedure also takes an optional handler argument which will handle
-     any exceptions thrown by the task: otherwise the task thread
-     throwing would terminate the program if not caught within the task.
+     event-loop-run!.  In the case of await-task-in-thread!  and
+     await-generator-in-thread!, those procedures also take an optional
+     handler argument which will handle any exceptions thrown by the
+     task or generator: otherwise a throwing thread would terminate the
+     program if not caught.
 
      There can be as many calls to 'await' and asynchronous callbacks in
      any one waitable procedure as wanted, to enable composition of
@@ -1177,6 +1178,9 @@ using event-post!.
      operates on the event loop passed in as an argument, or if none is
      passed (or #f is passed), on the default event loop.
 
+     In practice, calling event-sleep!  may often be more convenient for
+     composing asynchronous code than using this procedure.
+
      This procedure must (like the a-sync procedure) be called in the
      same thread as that in which the event loop runs.
 
@@ -1186,7 +1190,7 @@ using event-post!.
      thrown by 'thunk', if not caught locally, will propagate out of
      event-loop-run!.
 
-     Here is an example of the use of event-timeout!:
+     Here is an example of the use of await-timeout!:
           (set-default-event-loop!) ;; if none has yet been set
           (a-sync (lambda (await resume)
           	  (simple-format #t
@@ -1195,6 +1199,42 @@ using event-post!.
           					 100
           					 (lambda ()
           					   "expired")))))
+          (event-loop-run!)
+
+ -- Scheme Procedure: await-sleep! await resume [loop] msecs
+     This is a convenience procedure which will suspend execution of
+     code in the current a-sync or compose-a-sync block for the duration
+     of 'msecs' milliseconds.  The event loop will not be blocked by the
+     sleep - instead any other events in the event loop (including any
+     other a-sync or compose-a-sync blocks) will be serviced.  It is
+     intended to be called within a waitable procedure invoked by a-sync
+     (which supplies the 'await' and 'resume' arguments).  The 'loop'
+     argument is optional: this procedure operates on the event loop
+     passed in as an argument, or if none is passed (or #f is passed),
+     on the default event loop.
+
+     Calling this procedure is equivalent to calling await-timeout!
+     with a 'proc' argument comprising a lambda expression that does
+     nothing.
+
+     This procedure must (like the a-sync procedure) be called in the
+     same thread as that in which the event loop runs.
+
+     Exceptions may propagate out of this procedure if they arise while
+     setting up (that is, before the timeout is installed), which
+     shouldn't happen unless memory is exhausted.  Exceptions arising in
+     code appearing after the call to this procedure in the a-sync or
+     compose-a-sync block concerned will propagate out of
+     event-loop-run!.
+
+     This procedure is first available in version 0.12 of this library.
+
+     Here is an example of the use of await-sleep!:
+          (set-default-event-loop!) ;; if none has yet been set
+          (a-sync (lambda (await resume)
+          	  (display "Entering sleep\n")
+          	  (await-sleep! await resume 500)
+          	  (display "Timeout expired\n")))
           (event-loop-run!)
 
  -- Scheme Procedure: a-sync-read-watch! resume file proc [loop]
@@ -2678,15 +2718,17 @@ coroutines. module.
      further arguments as it requires.  All of the await-task!,
      await-task-in-thread!, await-task-in-event-loop!, await-yield!,
      await-generator!, await-generator-in-thread!,
-     await-generator-in-event-loop!, await-timeout!, await-getline!,
-     await-geteveryline!, await-getsomelines!, await-getblock!,
-     await-geteveryblock!, await-getsomeblocks!, await-put-bytevector!
-     and await-put-string!  procedures provided by the *note (a-sync
-     event-loop): event loop. module are 'compose-a-sync'-capable.  In
-     addition, to make an ordinary body of code which does not block
-     (and which does not need to invoke a-sync's await procedure) usable
-     by compose-a-sync, the no-await macro can be used to generate a
-     'compose-a-sync'-capable procedure for it (see below).
+     await-generator-in-event-loop!, await-timeout!, await-sleep!,
+     await-getline!, await-geteveryline!, await-getsomelines!,
+     await-getblock!, await-geteveryblock!, await-getsomeblocks!,
+     await-put-bytevector!, await-put-string!, await-accept!  and
+     await-connect!  procedures provided by the *note (a-sync
+     event-loop): event loop. and *note (a-sync sockets): sockets.
+     modules are 'compose-a-sync'-capable.  In addition, to make an
+     ordinary body of code which does not block (and which does not need
+     to invoke a-sync's await procedure) usable by compose-a-sync, the
+     no-await macro can be used to generate a 'compose-a-sync'-capable
+     procedure for it (see below).
 
      Each binding is initialized as if sequentially (although it is done
      asynchronously on the relevant event loop).  An initialization does
@@ -2758,10 +2800,10 @@ Tag Table:
 Node: Top85
 Node: overview1240
 Node: coroutines4178
-Node: event loop22232
-Node: sockets98948
-Node: monotonic time102136
-Node: gnome glib103567
-Node: compose136093
+Node: event loop22274
+Node: sockets100887
+Node: monotonic time104075
+Node: gnome glib105506
+Node: compose138032
 
 End Tag Table
