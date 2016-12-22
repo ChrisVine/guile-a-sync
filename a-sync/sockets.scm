@@ -119,5 +119,12 @@
 					   #t)
 					 loop)
 	    (await)
-	    (event-loop-remove-write-watch! sock loop))
+	    (event-loop-remove-write-watch! sock loop)
+	    (let ((status (getsockopt sock SOL_SOCKET SO_ERROR)))
+	      (unless (zero? status)
+		;; 'system-error is a guile exception but we can
+		;; reasonably throw it here as the error is derived
+		;; from guile's connect procedure
+		(throw 'system-error "await-connect!" "~A"
+		       (list (strerror status)) #f))))
 	  (apply throw args)))))
