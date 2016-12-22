@@ -66,8 +66,9 @@ returns a pair, comprising as car a connection socket, and as cdr a
 socket address object containing particulars of the address of the
 remote connection.  The event loop will not be blocked by this
 procedure even though no connection is immediately pending, provided
-that &rsquo;sock&rsquo; is non-blocking.  It is intended to be called in a
-waitable procedure invoked by a-sync.
+that &rsquo;sock&rsquo; is non-blocking.  It is intended to be called within a
+waitable procedure invoked by a-sync (which supplies the &rsquo;await&rsquo; and
+&rsquo;resume&rsquo; arguments).
 </p>
 <p>A socket port can be made non-blocking with this:
 </p>
@@ -94,13 +95,13 @@ exceptions will propagate out of event-loop-run!.
 <dt><a name="index-await_002dconnect_0021"></a>Scheme Procedure: <strong>await-connect!</strong> <em>await resume [loop] sock . args</em></dt>
 <dd><p>This is a convenience procedure which will connect socket &rsquo;sock&rsquo; to a
 remote host.  Particulars of the remote host are given by &rsquo;args&rsquo; which
-are the arguments (other than the &rsquo;sock&rsquo;) taken by guile&rsquo;s &rsquo;connect&rsquo;
+are the arguments (other than &rsquo;sock&rsquo;) taken by guile&rsquo;s &rsquo;connect&rsquo;
 procedure, which this procedure wraps.  &rsquo;sock&rsquo; must be a non-blocking
 socket port.  This procedure will return when the connection has been
 effected, but the event loop will not be blocked even though the
 connection cannot immediately be made, provided that &rsquo;sock&rsquo; is
-non-blocking.  It is intended to be called in a waitable procedure
-invoked by a-sync.
+non-blocking.  It is intended to be called within a waitable procedure
+invoked by a-sync (which supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments).
 </p>
 <p>A socket port can be made non-blocking with this:
 </p>

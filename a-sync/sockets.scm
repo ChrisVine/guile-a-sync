@@ -1,4 +1,4 @@
-;; Copyright (C) 2014 and 2016 Chris Vine
+;; Copyright (C) 2016 Chris Vine
 
 ;; This library is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU Lesser General Public
@@ -30,8 +30,9 @@
 ;; address object containing particulars of the address of the remote
 ;; connection.  The event loop will not be blocked by this procedure
 ;; even though no connection is immediately pending, provided that
-;; 'sock' is non-blocking.  It is intended to be called in a waitable
-;; procedure invoked by a-sync.
+;; 'sock' is non-blocking.  It is intended to be called within a
+;; waitable procedure invoked by a-sync (which supplies the 'await'
+;; and 'resume' arguments).
 ;;
 ;; The 'loop' argument is optional: this procedure operates on the
 ;; event loop passed in as an argument, or if none is passed (or #f is
@@ -79,13 +80,14 @@
 ;;
 ;; This procedure will connect socket 'sock' to a remote host.
 ;; Particulars of the remote host are given by 'args' which are the
-;; arguments (other than the 'sock') taken by guile's 'connect'
-;; procedure, which this procedure wraps.  'sock' must be a
-;; non-blocking socket port.  This procedure will return when the
-;; connection has been effected, but the event loop will not be
-;; blocked even though the connection cannot immediately be made,
-;; provided that 'sock' is non-blocking.  It is intended to be called
-;; in a waitable procedure invoked by a-sync.
+;; arguments (other than 'sock') taken by guile's 'connect' procedure,
+;; which this procedure wraps.  'sock' must be a non-blocking socket
+;; port.  This procedure will return when the connection has been
+;; effected, but the event loop will not be blocked even though the
+;; connection cannot immediately be made, provided that 'sock' is
+;; non-blocking.  It is intended to be called within a waitable
+;; procedure invoked by a-sync (which supplies the 'await' and
+;; 'resume' arguments).
 ;;
 ;; The 'loop' argument is optional: this procedure operates on the
 ;; event loop passed in as an argument, or if none is passed (or #f is

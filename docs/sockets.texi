@@ -11,8 +11,9 @@ returns a pair, comprising as car a connection socket, and as cdr a
 socket address object containing particulars of the address of the
 remote connection.  The event loop will not be blocked by this
 procedure even though no connection is immediately pending, provided
-that 'sock' is non-blocking.  It is intended to be called in a
-waitable procedure invoked by a-sync.
+that 'sock' is non-blocking.  It is intended to be called within a
+waitable procedure invoked by a-sync (which supplies the 'await' and
+'resume' arguments).
 
 A socket port can be made non-blocking with this:
 
@@ -38,13 +39,13 @@ This procedure is first available in version 0.12 of this library.
 @deffn {Scheme Procedure} await-connect! await resume [loop] sock . args
 This is a convenience procedure which will connect socket 'sock' to a
 remote host.  Particulars of the remote host are given by 'args' which
-are the arguments (other than the 'sock') taken by guile's 'connect'
+are the arguments (other than 'sock') taken by guile's 'connect'
 procedure, which this procedure wraps.  'sock' must be a non-blocking
 socket port.  This procedure will return when the connection has been
 effected, but the event loop will not be blocked even though the
 connection cannot immediately be made, provided that 'sock' is
-non-blocking.  It is intended to be called in a waitable procedure
-invoked by a-sync.
+non-blocking.  It is intended to be called within a waitable procedure
+invoked by a-sync (which supplies the 'await' and 'resume' arguments).
 
 A socket port can be made non-blocking with this:
 
