@@ -498,10 +498,17 @@ a-sync (which supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; argument
 single-threaded corollary of await-task-in-thread!.  This means that
 (unlike with await-task-in-thread!) while &rsquo;thunk&rsquo; is running other
 events in the event loop will not make progress, so blocking calls
-should not be made in &rsquo;thunk&rsquo;.  This procedure can be useful for the
-purpose of implementing co-operative multi-tasking, say by composing
-tasks with compose-a-sync (see the <a href="compose.html#compose">compose</a> module).
-For that purpose however, event-yield! may often be more convenient.
+should not be made in &rsquo;thunk&rsquo;.
+</p>
+<p>This procedure can be used for the purpose of implementing
+co-operative multi-tasking.  However, when &rsquo;thunk&rsquo; is executed, this
+procedure is waiting on &rsquo;await&rsquo;, so &rsquo;await&rsquo; and &rsquo;resume&rsquo; cannot be
+used again in &rsquo;thunk&rsquo; (although &rsquo;thunk&rsquo; can call a-sync to start
+another series of asynchronous operations with a new await-resume
+pair).  For that reason, event-yield! is usually more convenient for
+composing asynchronous tasks.  In retrospect, this procedure offers
+little over await-yield!, apart from symmetry with
+await-task-in-thread!.
 </p>
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the event loop runs.
@@ -541,8 +548,7 @@ await-yield! in the current a-sync or compose-a-sync block will
 execute on the next iteration through the loop.  It is intended to be
 called within a waitable procedure invoked by a-sync (which supplies
 the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments).  It&rsquo;s effect is similar to
-calling await-task!  with a task comprising the code appearing after
-the yield.
+calling await-task! with a task that does nothing.
 </p>
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the relevant event loop runs: for this purpose
@@ -741,6 +747,10 @@ namely the value yielded by the generator.  Each time &rsquo;proc&rsquo; runs it
 will do so as a separate event in the event loop and so be
 multi-plexed with other events.
 </p>
+<p>When &rsquo;proc&rsquo; executes, this procedure will have released &rsquo;await&rsquo; and
+&rsquo;resume&rsquo;, so they may be used by &rsquo;proc&rsquo; to initiate other asynchronous
+operations sequentially.
+</p>
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the event loop runs.
 </p>
@@ -801,8 +811,13 @@ optional: this procedure operates on the event loop passed in as an
 argument, or if none is passed (or #f is passed), on the default event
 loop.
 </p>
-<p>In practice, calling event-sleep! may often be more convenient for
-composing asynchronous code than using this procedure.
+<p>In practice, calling await-sleep! may often be more convenient for
+composing asynchronous code than using this procedure.  That is
+because, when &rsquo;thunk&rsquo; is executed, this procedure is waiting on
+&rsquo;await&rsquo;, so &rsquo;await&rsquo; and &rsquo;resume&rsquo; cannot be used again in &rsquo;thunk&rsquo;
+(although &rsquo;thunk&rsquo; can call a-sync to start another series of
+asynchronous operations with a new await-resume pair).  In retrospect,
+this procedure offers little over await-sleep!.
 </p>
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the event loop runs.
@@ -1070,6 +1085,10 @@ happening, this procedure will end and return an end-of-file object or
 loop passed in as an argument, or if none is passed (or #f is passed),
 on the default event loop.
 </p>
+<p>When &rsquo;proc&rsquo; executes, this procedure will have released &rsquo;await&rsquo; and
+&rsquo;resume&rsquo;, so they may be used by &rsquo;proc&rsquo; to initiate other asynchronous
+operations sequentially.
+</p>
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the event loop runs.
 </p>
@@ -1154,6 +1173,10 @@ continuation will be returned.
 <p>The &rsquo;loop&rsquo; argument is optional: this procedure operates on the event
 loop passed in as an argument, or if none is passed (or #f is passed),
 on the default event loop.
+</p>
+<p>When &rsquo;proc&rsquo; executes, this procedure will have released &rsquo;await&rsquo; and
+&rsquo;resume&rsquo;, so they may be used by &rsquo;proc&rsquo; to initiate other asynchronous
+operations sequentially.
 </p>
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the event loop runs.
@@ -1289,6 +1312,10 @@ after &rsquo;proc&rsquo; has returned, it should store it by copying it.
 loop passed in as an argument, or if none is passed (or #f is passed),
 on the default event loop.
 </p>
+<p>When &rsquo;proc&rsquo; executes, this procedure will have released &rsquo;await&rsquo; and
+&rsquo;resume&rsquo;, so they may be used by &rsquo;proc&rsquo; to initiate other asynchronous
+operations sequentially.
+</p>
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the event loop runs.
 </p>
@@ -1350,6 +1377,10 @@ after &rsquo;proc&rsquo; has returned, it should store it by copying it.
 loop passed in as an argument, or if none is passed (or #f is passed),
 on the default event loop.
 </p>
+<p>When &rsquo;proc&rsquo; executes, this procedure will have released &rsquo;await&rsquo; and
+&rsquo;resume&rsquo;, so they may be used by &rsquo;proc&rsquo; to initiate other asynchronous
+operations sequentially.
+</p>
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the event loop runs.
 </p>
@@ -1404,36 +1435,38 @@ implementation of await-put-bytevector!:
     ((await resume port bv) (await-put-bytevector! await resume #f port bv))
     ((await resume loop port bv)
      (define length (bytevector-length bv))
-     (define index 0)
      (_throw-exception-if-regular-file (fileno port))
 
-     (let ((fd (port-&gt;fdes port)))
-       (a-sync-write-watch! resume
-			    fd
-			    (lambda (status)
-			      (catch #t
-				(lambda ()
-				  (if (eq? status 'excpt)
-				      #f
-				      (begin
-					(set! index (+ index (c-write fd
-								      bv
-								      index
-								      (- length index))))
-					(if (&lt; index length)
-					    'more
-					    #t))))
-				(lambda args
-				  (release-port-handle port)
-				  (apply throw args))))
-			    loop)
-       (let next ((res (await)))
-	 (if (eq? res 'more)
-	     (next (await))
-	     (begin
-	       (event-loop-remove-write-watch! fd loop)
-	       (release-port-handle port)
-	       res)))))))
+     (let ((index (c-write (fileno port) bv 0 length)))
+       (if (&lt; index length)
+	   (let ((fd (port-&gt;fdes port)))
+	     (a-sync-write-watch! resume
+				  fd
+				  (lambda (status)
+				    (catch #t
+				      (lambda ()
+					(if (eq? status 'excpt)
+					    #f
+					    (begin
+					      (set! index (+ index (c-write fd
+									    bv
+									    index
+									    (- length index))))
+					      (if (&lt; index length)
+						  'more
+						  #t))))
+				      (lambda args
+					(release-port-handle port)
+					(apply throw args))))
+				  loop)
+	     (let next ((res (await)))
+	       (if (eq? res 'more)
+		   (next (await))
+		   (begin
+		     (event-loop-remove-write-watch! fd loop)
+		     (release-port-handle port)
+		     res))))
+	   #t)))))
 </pre></div>
 </dd></dl>
 
@@ -1482,10 +1515,11 @@ block on write and are always signalled as ready.
 thread as that in which the event loop runs.
 </p>
 <p>Exceptions may propagate out of this procedure if they arise while
-setting up (that is, before the first call to &rsquo;await&rsquo; is made), which
-shouldn&rsquo;t happen unless memory is exhausted or a regular file is
-passed to this procedure.  Subsequent exceptions (say, because of port
-errors) will propagate out of event-loop-run!.
+setting up (that is, before the first call to &rsquo;await&rsquo; is made), say
+because a regular file is passed to this procedure or write errors
+occur on the first attempt to write to the port.  Subsequent
+exceptions (say, because of subsequent port errors) will propagate out
+of event-loop-run!.
 </p>
 <p>This procedure is first available in version 0.11 of this library.
 </p>
@@ -1539,11 +1573,11 @@ block on write and are always signalled as ready.
 thread as that in which the event loop runs.
 </p>
 <p>Exceptions may propagate out of this procedure if they arise while
-setting up (that is, before the first call to &rsquo;await&rsquo; is made), which
-shouldn&rsquo;t happen unless memory is exhausted, a conversion error is
-encountered or a regular file is passed to this procedure.  Subsequent
-exceptions (say, because of port errors) will propagate out of
-event-loop-run!.
+setting up (that is, before the first call to &rsquo;await&rsquo; is made), say
+because a conversion error is encountered, a regular file is passed to
+this procedure or write errors occur on the first attempt to write to
+the port.  Subsequent exceptions (say, because of subsequent port
+errors) will propagate out of event-loop-run!.
 </p>
 <p>The bytes to be sent will be converted from the passed in string
 representation using the encoding of &rsquo;port&rsquo; if a port encoding has

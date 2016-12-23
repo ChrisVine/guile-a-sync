@@ -973,10 +973,17 @@
 ;; await-task-in-thread!.  This means that (unlike with
 ;; await-task-in-thread!) while 'thunk' is running other events in the
 ;; event loop will not make progress, so blocking calls should not be
-;; made in 'thunk'.  This procedure can be useful for the purpose of
-;; implementing co-operative multi-tasking, say by composing tasks
-;; with compose-a-sync (see compose.scm).  For that purpose however,
-;; event-yield! may often be more convenient.
+;; made in 'thunk'.
+;;
+;; This procedure can be used for the purpose of implementing
+;; co-operative multi-tasking.  However, when 'thunk' is executed,
+;; this procedure is waiting on 'await', so 'await' and 'resume'
+;; cannot be used again in 'thunk' (although 'thunk' can call a-sync
+;; to start another series of asynchronous operations with a new
+;; await-resume pair).  For that reason, event-yield! is usually more
+;; convenient for composing asynchronous tasks.  In retrospect, this
+;; procedure offers little over await-yield!, apart from symmetry with
+;; await-task-in-thread!.
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the event loop runs.
@@ -1015,7 +1022,7 @@
 ;; through the loop.  It is intended to be called within a waitable
 ;; procedure invoked by a-sync (which supplies the 'await' and
 ;; 'resume' arguments).  It's effect is similar to calling await-task!
-;; with a task comprising the code appearing after the yield.
+;; with a task that does nothing.
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the relevant event loop runs: for this
@@ -1244,6 +1251,10 @@
 ;; 'proc' runs it will do so as a separate event in the event loop and
 ;; so be multi-plexed with other events.
 ;;
+;; When 'proc' executes, this procedure will have released 'await' and
+;; 'resume', so they may be used by 'proc' to initiate other
+;; asynchronous operations sequentially.
+;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the event loop runs.
 ;;
@@ -1304,8 +1315,13 @@
 ;; procedure operates on the event loop passed in as an argument, or
 ;; if none is passed (or #f is passed), on the default event loop.
 ;;
-;; In practice, calling event-sleep! may often be more convenient for
-;; composing asynchronous code than using this procedure.
+;; In practice, calling await-sleep! may often be more convenient for
+;; composing asynchronous code than using this procedure.  That is
+;; because, when 'thunk' is executed, this procedure is waiting on
+;; 'await', so 'await' and 'resume' cannot be used again in 'thunk'
+;; (although 'thunk' can call a-sync to start another series of
+;; asynchronous operations with a new await-resume pair).  In
+;; retrospect, this procedure offers little over await-sleep!.
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the event loop runs.
@@ -1564,6 +1580,10 @@
 ;; event loop passed in as an argument, or if none is passed (or #f is
 ;; passed), on the default event loop.
 ;;
+;; When 'proc' executes, this procedure will have released 'await' and
+;; 'resume', so they may be used by 'proc' to initiate other
+;; asynchronous operations sequentially.
+;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the event loop runs.
 ;;
@@ -1730,6 +1750,10 @@
 ;; The 'loop' argument is optional: this procedure operates on the
 ;; event loop passed in as an argument, or if none is passed (or #f is
 ;; passed), on the default event loop.
+;;
+;; When 'proc' executes, this procedure will have released 'await' and
+;; 'resume', so they may be used by 'proc' to initiate other
+;; asynchronous operations sequentially.
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the event loop runs.
@@ -1991,6 +2015,10 @@
 ;; event loop passed in as an argument, or if none is passed (or #f is
 ;; passed), on the default event loop.
 ;;
+;; When 'proc' executes, this procedure will have released 'await' and
+;; 'resume', so they may be used by 'proc' to initiate other
+;; asynchronous operations sequentially.
+;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the event loop runs.
 ;;
@@ -2117,6 +2145,10 @@
 ;; The 'loop' argument is optional: this procedure operates on the
 ;; event loop passed in as an argument, or if none is passed (or #f is
 ;; passed), on the default event loop.
+;;
+;; When 'proc' executes, this procedure will have released 'await' and
+;; 'resume', so they may be used by 'proc' to initiate other
+;; asynchronous operations sequentially.
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the event loop runs.
@@ -2287,10 +2319,11 @@
 ;; same thread as that in which the event loop runs.
 ;;
 ;; Exceptions may propagate out of this procedure if they arise while
-;; setting up (that is, before the first call to 'await' is made),
-;; which shouldn't happen unless memory is exhausted or a regular file
-;; is passed to this procedure.  Subsequent exceptions (say, because
-;; of port errors) will propagate out of event-loop-run!.
+;; setting up (that is, before the first call to 'await' is made), say
+;; because a regular file is passed to this procedure or write errors
+;; occur on the first attempt to write to the port.  Subsequent
+;; exceptions (say, because of subsequent port errors) will propagate
+;; out of event-loop-run!.
 ;;
 ;; This procedure is first available in version 0.11 of this library.
 (define await-put-bytevector! 
@@ -2393,11 +2426,11 @@
 ;; same thread as that in which the event loop runs.
 ;;
 ;; Exceptions may propagate out of this procedure if they arise while
-;; setting up (that is, before the first call to 'await' is made),
-;; which shouldn't happen unless memory is exhausted, a conversion
-;; error is encountered or a regular file is passed to this procedure.
-;; Subsequent exceptions (say, because of port errors) will propagate
-;; out of event-loop-run!.
+;; setting up (that is, before the first call to 'await' is made), say
+;; because a conversion error is encountered, a regular file is passed
+;; to this procedure or write errors occur on the first attempt to
+;; write to the port.  Subsequent exceptions (say, because of
+;; subsequent port errors) will propagate out of event-loop-run!.
 ;;
 ;; The bytes to be sent will be converted from the passed in string
 ;; representation using the encoding of 'port' if a port encoding has
