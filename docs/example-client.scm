@@ -47,17 +47,15 @@
   (define body "")
   (await-geteveryline! await resume sock
 		       (lambda (line)
-			 ;; get rid of CR characters at line endings
-			 (let ((trimmed (string-trim-right line #\cr)))
-			   (cond
-			    ((not (string=? body ""))
-			     (set! body (string-append body "\n" trimmed)))
-			    ((string=? trimmed "")
-			     (set! body (string (integer->char 0)))) ;; marker
-			    (else
-			     (set! header (if (string=? header "")
-					      trimmed
-					      (string-append header "\n" trimmed))))))))
+			 (cond
+			  ((not (string=? body ""))
+			   (set! body (string-append body "\n" line)))
+			  ((string=? line "")
+			   (set! body (string (integer->char 0)))) ;; marker
+			  (else
+			   (set! header (if (string=? header "")
+					    line
+					    (string-append header "\n" line)))))))
   ;; get rid of marker (with \n) in body
   (set! body (substring body 2 (string-length body)))
   (values header body))

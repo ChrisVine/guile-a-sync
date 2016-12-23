@@ -49,19 +49,16 @@
 
 (define (handle-conversation conn-sock)
   (a-sync (lambda (await resume)
-	    (let loop ([line (await-getline! await resume conn-sock)])
-	      ;; get rid of CR characters at line endings
-	      (let ((trimmed (string-trim-right line #\cr)))
-		(if (not (string=? trimmed ""))
-		    (begin
-		      (await-put-string! await resume conn-sock (string-append "echo: " trimmed "\n"))
-		      (loop (await-getline! await resume conn-sock)))
-		    (begin
-		      (shutdown conn-sock 2)
-		      (close-port conn-sock)
-		      (set! count (- count 1))
-		      (when (zero? count)
-			(event-loop-quit!)))))))))
+	    (await-getsomelines! await resume conn-sock
+				 (lambda (line k)
+				   (if (not (string=? line ""))
+				       (await-put-string! await resume conn-sock (string-append "echo: " line "\n"))
+				       (k #f))))
+	    (shutdown conn-sock 2)
+	    (close-port conn-sock)
+	    (set! count (- count 1))
+	    (when (zero? count)
+	      (event-loop-quit!)))))
 
 (define (start-server)
   (a-sync (lambda (await resume)
