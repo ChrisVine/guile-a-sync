@@ -669,32 +669,37 @@
 ;;
 ;; This procedure is first available in version 0.11 of this library.
 (define (await-glib-put-bytevector await resume port bv)
-  (define index 0)
   (define length (bytevector-length bv))
   (define fd (fileno port))
   (_throw-exception-if-regular-file fd)
-  (letrec ((id (a-sync-glib-write-watch resume
-					(port->fdes port)
-					(lambda (ioc status)
-					  (catch #t
-					    (lambda ()
-					      (set! index (+ index (c-write fd
-									    bv
-									    index
-									    (- length index))))
-					      (if (< index length)
-						  'more
-						  #f))
-					    (lambda args
-					      (g-source-remove id)
-					      (release-port-handle port)
-					      (apply throw args)))))))
-    (let next ((res (await)))
-      (if (eq? res 'more)
-	  (next (await))
-	  (begin
-	    (g-source-remove id)
-	    (release-port-handle port))))))
+
+  (let ((index (c-write fd bv 0 length)))
+    ;; for testing
+    ;;(let ((index 0))
+    ;; set up write watch if we haven't written everything
+    (if (< index length)
+	(letrec ((id (a-sync-glib-write-watch resume
+					      (port->fdes port)
+					      (lambda (ioc status)
+						(catch #t
+						  (lambda ()
+						    (set! index (+ index (c-write fd
+										  bv
+										  index
+										  (- length index))))
+						    (if (< index length)
+							'more
+							#f))
+						  (lambda args
+						    (g-source-remove id)
+						    (release-port-handle port)
+						    (apply throw args)))))))
+	  (let next ((res (await)))
+	    (if (eq? res 'more)
+		(next (await))
+		(begin
+		  (g-source-remove id)
+		  (release-port-handle port))))))))
 
 ;; This is a convenience procedure which will start a write watch on
 ;; 'port' for writing a string to the port.  It calls 'await' while
