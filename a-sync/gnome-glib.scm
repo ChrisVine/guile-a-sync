@@ -152,8 +152,8 @@
 ;; compose-a-sync block will execute on the next iteration through the
 ;; loop.  It is intended to be called within a waitable procedure
 ;; invoked by a-sync (which supplies the 'await' and 'resume'
-;; arguments).  It's effect is similar to calling await-task!  with a
-;; task that does nothing.
+;; arguments).  It's effect is similar to calling await-glib-task with
+;; a task that does nothing.
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the relevant event loop runs: for this
@@ -161,11 +161,8 @@
 ;; 'loop' argument, or if no 'loop' argument is provided or #f is
 ;; provided as the 'loop' argument, then the default event loop.
 ;;
-;; Exceptions may propagate out of this procedure if they arise while
-;; setting up (that is, before the task starts), which shouldn't
-;; happen unless memory is exhausted.  Exceptions arising in code
-;; appearing after the call to this procedure in the a-sync or
-;; compose-a-sync block will propagate out of g-main-loop-run.
+;; This procedure should not throw any exceptions unless memory is
+;; exhausted.
 ;;
 ;; This procedure is first available in version 0.12 of this library.
 (define (await-glib-yield await resume)
@@ -211,7 +208,7 @@
 ;; generator, if not caught by a handler procedure, will terminate the
 ;; program.  Exceptions thrown by the handler procedure will propagate
 ;; out of g-main-loop-run.  Exceptions thrown by 'proc', if not caught
-;; locally, will also propagate out of g-main-loop-run!.
+;; locally, will also propagate out of g-main-loop-run.
 ;;
 ;; This procedure is first available in version 0.9 of this library.
 (define* (await-glib-generator-in-thread await resume generator proc #:optional handler)
@@ -283,7 +280,7 @@
 ;; happen unless memory is exhausted.  Exceptions arising during
 ;; execution of the generator, if not caught locally, will propagate
 ;; out of await-glib-generator.  Exceptions thrown by 'proc', if not
-;; caught locally, will propagate out of g-main-loop-run!.
+;; caught locally, will propagate out of g-main-loop-run.
 ;;
 ;; This procedure is first available in version 0.9 of this library.
 (define (await-glib-generator await resume generator proc)
@@ -313,7 +310,7 @@
 ;; 'await', so 'await' and 'resume' cannot be used again in 'thunk'
 ;; (although 'thunk' can call a-sync to start another series of
 ;; asynchronous operations with a new await-resume pair).  In
-;; retrospect, this procedure offers little over await-glib-sleep!.
+;; retrospect, this procedure offers little over await-glib-sleep.
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the default glib main loop runs.
@@ -346,12 +343,8 @@
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the default glib main loop runs.
 ;;
-;; Exceptions may propagate out of this procedure if they arise while
-;; setting up (that is, before the first call to 'await' is made),
-;; which shouldn't happen unless memory is exhausted.  Exceptions
-;; arising in code appearing after the call to this procedure in the
-;; a-sync or compose-a-sync block concerned will propagate out of
-;; g-main-loop-run.
+;; This procedure should not throw any exceptions unless memory is
+;; exhausted.
 ;;
 ;; This procedure is first available in version 0.12 of this library.
 (define (await-glib-sleep await resume msecs)
