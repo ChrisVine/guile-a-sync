@@ -173,7 +173,7 @@ after the call to await-yield! in the current a-sync or compose-a-sync
 block will execute on the next iteration through the loop.  It is
 intended to be called within a waitable procedure invoked by a-sync
 (which supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments).  It&rsquo;s effect is
-similar to calling await-task!  with a task that does nothing.
+similar to calling await-glib-task with a task that does nothing.
 </p>
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the relevant event loop runs: for this purpose
@@ -181,11 +181,8 @@ thread as that in which the relevant event loop runs: for this purpose
 argument, or if no &rsquo;loop&rsquo; argument is provided or #f is provided as
 the &rsquo;loop&rsquo; argument, then the default event loop.
 </p>
-<p>Exceptions may propagate out of this procedure if they arise while
-setting up (that is, before the task starts), which shouldn&rsquo;t happen
-unless memory is exhausted.  Exceptions arising in code appearing
-after the call to this procedure in the a-sync or compose-a-sync block
-will propagate out of g-main-loop-run.
+<p>This procedure should not throw any exceptions unless memory is
+exhausted.
 </p>
 <p>This procedure is first available in version 0.12 of this library.
 </p>
@@ -242,7 +239,7 @@ Exceptions arising during execution of the generator, if not caught by
 a handler procedure, will terminate the program.  Exceptions thrown by
 the handler procedure will propagate out of g-main-loop-run.
 Exceptions thrown by &rsquo;proc&rsquo;, if not caught locally, will also
-propagate out of g-main-loop-run!.
+propagate out of g-main-loop-run.
 </p>
 <p>This procedure is first available in version 0.9 of this library.
 </p>
@@ -300,7 +297,7 @@ setting up (that is, before the task starts), which shouldn&rsquo;t happen
 unless memory is exhausted.  Exceptions arising during execution of
 the generator, if not caught locally, will propagate out of
 await-glib-generator.  Exceptions thrown by &rsquo;proc&rsquo;, if not caught
-locally, will propagate out of g-main-loop-run!.
+locally, will propagate out of g-main-loop-run.
 </p>
 <p>This procedure is first available in version 0.9 of this library.
 </p>
@@ -341,7 +338,7 @@ because, when &rsquo;thunk&rsquo; is executed, this procedure is waiting on
 &rsquo;await&rsquo;, so &rsquo;await&rsquo; and &rsquo;resume&rsquo; cannot be used again in &rsquo;thunk&rsquo;
 (although &rsquo;thunk&rsquo; can call a-sync to start another series of
 asynchronous operations with a new await-resume pair).  In retrospect,
-this procedure offers little over await-glib-sleep!.
+this procedure offers little over await-glib-sleep.
 </p>
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the default glib main loop runs.
@@ -383,11 +380,8 @@ nothing.
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the default glib main loop runs.
 </p>
-<p>Exceptions may propagate out of this procedure if they arise while
-setting up (that is, before the first call to &rsquo;await&rsquo; is made), which
-shouldn&rsquo;t happen unless memory is exhausted.  Exceptions arising in
-code appearing after the call to this procedure in the a-sync or
-compose-a-sync block concerned will propagate out of g-main-loop-run.
+<p>This procedure should not throw any exceptions unless memory is
+exhausted.
 </p>
 <p>This procedure is first available in version 0.12 of this library.
 </p>
