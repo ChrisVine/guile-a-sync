@@ -49,9 +49,11 @@
   #:use-module (a-sync coroutines)     ;; for make-iterator
   #:export (await-glib-task-in-thread
 	    await-glib-task
+	    await-glib-yield
 	    await-glib-generator-in-thread
 	    await-glib-generator
 	    await-glib-timeout
+	    await-glib-sleep
 	    glib-add-watch
 	    a-sync-glib-read-watch
 	    a-sync-glib-write-watch
@@ -120,6 +122,15 @@
 ;; running other events in the main loop will not make progress, so
 ;; blocking calls should not be made in 'thunk'.
 ;;
+;; When 'thunk' is executed, this procedure is waiting on 'await', so
+;; 'await' and 'resume' cannot be used again in 'thunk' (although
+;; 'thunk' can call a-sync to start another series of asynchronous
+;; operations with a new await-resume pair).  For that reason,
+;; await-glib-yield is usually more convenient for composing
+;; asynchronous tasks.  In retrospect, this procedure offers little
+;; over await-glib-yield, apart from symmetry with
+;; await-glib-task-in-thread.
+;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the default glib main loop runs.
 ;;
@@ -131,6 +142,35 @@
 (define (await-glib-task await resume thunk)
   (g-idle-add (lambda ()
 		(resume (thunk))
+		#f))
+  (await))
+
+;; This is a convenience procedure for use with glib, which will
+;; surrender execution to the relevant event loop, so that code in
+;; other a-sync or compose-a-sync blocks can run.  The remainder of
+;; the code after the call to await-yield! in the current a-sync or
+;; compose-a-sync block will execute on the next iteration through the
+;; loop.  It is intended to be called within a waitable procedure
+;; invoked by a-sync (which supplies the 'await' and 'resume'
+;; arguments).  It's effect is similar to calling await-task!  with a
+;; task that does nothing.
+;;
+;; This procedure must (like the a-sync procedure) be called in the
+;; same thread as that in which the relevant event loop runs: for this
+;; purpose "the relevant event loop" is the event loop given by the
+;; 'loop' argument, or if no 'loop' argument is provided or #f is
+;; provided as the 'loop' argument, then the default event loop.
+;;
+;; Exceptions may propagate out of this procedure if they arise while
+;; setting up (that is, before the task starts), which shouldn't
+;; happen unless memory is exhausted.  Exceptions arising in code
+;; appearing after the call to this procedure in the a-sync or
+;; compose-a-sync block will propagate out of g-main-loop-run.
+;;
+;; This procedure is first available in version 0.12 of this library.
+(define (await-glib-yield await resume)
+  (g-idle-add (lambda ()
+		(resume)
 		#f))
   (await))
 
@@ -231,6 +271,10 @@
 ;; (other than to the yield procedure) should not be made in
 ;; 'generator'.
 ;;
+;; When 'proc' executes, this procedure will have released 'await' and
+;; 'resume', so they may be used by 'proc' to initiate other
+;; asynchronous operations sequentially.
+;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the event loop runs.
 ;;
@@ -263,6 +307,14 @@
 ;; soon as 'thunk' has run once and completed, the timeout will be
 ;; removed from the event loop.
 ;;
+;; In practice, calling await-glib-sleep may often be more convenient
+;; for composing asynchronous code than using this procedure.  That is
+;; because, when 'thunk' is executed, this procedure is waiting on
+;; 'await', so 'await' and 'resume' cannot be used again in 'thunk'
+;; (although 'thunk' can call a-sync to start another series of
+;; asynchronous operations with a new await-resume pair).  In
+;; retrospect, this procedure offers little over await-glib-sleep!.
+;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the default glib main loop runs.
 ;;
@@ -275,6 +327,37 @@
   (g-timeout-add msecs
 		 (lambda ()
 		   (resume (thunk))
+		   #f))
+  (await))
+
+;; This is a convenience procedure for use with a glib main loop,
+;; which will suspend execution of code in the current a-sync or
+;; compose-a-sync block for the duration of 'msecs' milliseconds.  The
+;; event loop will not be blocked by the sleep - instead any other
+;; events in the event loop (including any other a-sync or
+;; compose-a-sync blocks) will be serviced.  It is intended to be
+;; called within a waitable procedure invoked by a-sync (which
+;; supplies the 'await' and 'resume' arguments).
+;;
+;; Calling this procedure is equivalent to calling await-glib-timeout
+;; with a 'proc' argument comprising a lambda expression that does
+;; nothing.
+;;
+;; This procedure must (like the a-sync procedure) be called in the
+;; same thread as that in which the default glib main loop runs.
+;;
+;; Exceptions may propagate out of this procedure if they arise while
+;; setting up (that is, before the first call to 'await' is made),
+;; which shouldn't happen unless memory is exhausted.  Exceptions
+;; arising in code appearing after the call to this procedure in the
+;; a-sync or compose-a-sync block concerned will propagate out of
+;; g-main-loop-run.
+;;
+;; This procedure is first available in version 0.12 of this library.
+(define (await-glib-sleep await resume msecs)
+  (g-timeout-add msecs
+		 (lambda ()
+		   (resume)
 		   #f))
   (await))
 
