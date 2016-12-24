@@ -131,6 +131,14 @@ await-glib-task-in-thread) while &rsquo;thunk&rsquo; is running other events in
 the main loop will not make progress, so blocking calls should not be
 made in &rsquo;thunk&rsquo;.
 </p>
+<p>When &rsquo;thunk&rsquo; is executed, this procedure is waiting on &rsquo;await&rsquo;, so
+&rsquo;await&rsquo; and &rsquo;resume&rsquo; cannot be used again in &rsquo;thunk&rsquo; (although &rsquo;thunk&rsquo;
+can call a-sync to start another series of asynchronous operations
+with a new await-resume pair).  For that reason, await-glib-yield is
+usually more convenient for composing asynchronous tasks.  In
+retrospect, this procedure offers little over await-glib-yield, apart
+from symmetry with await-glib-task-in-thread.
+</p>
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the default glib main loop runs.
 </p>
@@ -151,6 +159,46 @@ that.
 			 (await-glib-task await resume
 					  (lambda ()
 					    (+ 1 1))))
+	  (g-main-loop-quit main-loop)))
+(g-main-loop-run main-loop)
+</pre></div>
+</dd></dl>
+
+<dl>
+<dt><a name="index-await_002dglib_002dyield"></a>Scheme Procedure: <strong>await-glib-yield</strong> <em>await resume</em></dt>
+<dd><p>This is a convenience procedure for use with glib, which will
+surrender execution to the relevant event loop, so that code in other
+a-sync or compose-a-sync blocks can run.  The remainder of the code
+after the call to await-yield! in the current a-sync or compose-a-sync
+block will execute on the next iteration through the loop.  It is
+intended to be called within a waitable procedure invoked by a-sync
+(which supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments).  It&rsquo;s effect is
+similar to calling await-task!  with a task that does nothing.
+</p>
+<p>This procedure must (like the a-sync procedure) be called in the same
+thread as that in which the relevant event loop runs: for this purpose
+&quot;the relevant event loop&quot; is the event loop given by the &rsquo;loop&rsquo;
+argument, or if no &rsquo;loop&rsquo; argument is provided or #f is provided as
+the &rsquo;loop&rsquo; argument, then the default event loop.
+</p>
+<p>Exceptions may propagate out of this procedure if they arise while
+setting up (that is, before the task starts), which shouldn&rsquo;t happen
+unless memory is exhausted.  Exceptions arising in code appearing
+after the call to this procedure in the a-sync or compose-a-sync block
+will propagate out of g-main-loop-run.
+</p>
+<p>This procedure is first available in version 0.12 of this library.
+</p>
+<p>This procedure uses g-idle-add: see the introductory remarks about
+that.
+</p>
+<p>Here is an example of the use of await-glib-yield:
+</p><div class="example">
+<pre class="example">(define main-loop (g-main-loop-new #f #f))
+(a-sync (lambda (await resume)
+	  (display &quot;In first iteration through event loop\n&quot;)
+	  (await-glib-yield await resume)
+	  (display &quot;In next iteration through event loop\n&quot;)))
 	  (g-main-loop-quit main-loop)))
 (g-main-loop-run main-loop)
 </pre></div>
@@ -240,6 +288,10 @@ events in the main loop will not make progress, so blocking calls
 (other than to the yield procedure) should not be made in
 &rsquo;generator&rsquo;.
 </p>
+<p>When &rsquo;proc&rsquo; executes, this procedure will have released &rsquo;await&rsquo; and
+&rsquo;resume&rsquo;, so they may be used by &rsquo;proc&rsquo; to initiate other asynchronous
+operations sequentially.
+</p>
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the event loop runs.
 </p>
@@ -283,6 +335,14 @@ invoked by a-sync.  The timeout is single shot only - as soon as
 &rsquo;thunk&rsquo; has run once and completed, the timeout will be removed from
 the event loop.
 </p>
+<p>In practice, calling await-glib-sleep may often be more convenient for
+composing asynchronous code than using this procedure.  That is
+because, when &rsquo;thunk&rsquo; is executed, this procedure is waiting on
+&rsquo;await&rsquo;, so &rsquo;await&rsquo; and &rsquo;resume&rsquo; cannot be used again in &rsquo;thunk&rsquo;
+(although &rsquo;thunk&rsquo; can call a-sync to start another series of
+asynchronous operations with a new await-resume pair).  In retrospect,
+this procedure offers little over await-glib-sleep!.
+</p>
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the default glib main loop runs.
 </p>
@@ -301,6 +361,43 @@ shouldn&rsquo;t happen unless memory is exhausted.  Exceptions thrown by
 					     100
 					     (lambda ()
 					       &quot;expired&quot;)))
+	  (g-main-loop-quit main-loop)))
+(g-main-loop-run main-loop)
+</pre></div>
+</dd></dl>
+
+<dl>
+<dt><a name="index-await_002dglib_002dsleep"></a>Scheme Procedure: <strong>await-glib-sleep</strong> <em>await resume msecs</em></dt>
+<dd><p>This is a convenience procedure for use with a glib main loop, which
+will suspend execution of code in the current a-sync or compose-a-sync
+block for the duration of &rsquo;msecs&rsquo; milliseconds.  The event loop will
+not be blocked by the sleep - instead any other events in the event
+loop (including any other a-sync or compose-a-sync blocks) will be
+serviced.  It is intended to be called within a waitable procedure
+invoked by a-sync (which supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments).
+</p>
+<p>Calling this procedure is equivalent to calling await-glib-timeout
+with a &rsquo;proc&rsquo; argument comprising a lambda expression that does
+nothing.
+</p>
+<p>This procedure must (like the a-sync procedure) be called in the same
+thread as that in which the default glib main loop runs.
+</p>
+<p>Exceptions may propagate out of this procedure if they arise while
+setting up (that is, before the first call to &rsquo;await&rsquo; is made), which
+shouldn&rsquo;t happen unless memory is exhausted.  Exceptions arising in
+code appearing after the call to this procedure in the a-sync or
+compose-a-sync block concerned will propagate out of g-main-loop-run.
+</p>
+<p>This procedure is first available in version 0.12 of this library.
+</p>
+<p>Here is an example of the use of await-glib-sleep:
+</p><div class="example">
+<pre class="example">(define main-loop (g-main-loop-new #f #f))
+(a-sync (lambda (await resume)
+	  (display &quot;Entering sleep\n&quot;)
+	  (await-glib-sleep await resume 500)
+	  (display &quot;Timeout expired\n&quot;)
 	  (g-main-loop-quit main-loop)))
 (g-main-loop-run main-loop)
 </pre></div>
