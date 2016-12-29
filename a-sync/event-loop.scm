@@ -2284,12 +2284,9 @@
 ;; can be written at any one time.  It is intended to be called within
 ;; a waitable procedure invoked by a-sync (which supplies the 'await'
 ;; and 'resume' arguments), and this procedure is implemented using
-;; a-sync-write-watch!.  If an exceptional condition ('excpt) is
-;; encountered, #f will be returned, otherwise #t will be returned
-;; (but an exceptional condition should never be encountered on an
-;; output port).  The 'loop' argument is optional: this procedure
-;; operates on the event loop passed in as an argument, or if none is
-;; passed (or #f is passed), on the default event loop.
+;; a-sync-write-watch!.  The 'loop' argument is optional: this
+;; procedure operates on the event loop passed in as an argument, or
+;; if none is passed (or #f is passed), on the default event loop.
 ;;
 ;; For reasons of efficiency, this procedure by-passes the port's
 ;; output buffer and sends the output to the underlying file
@@ -2313,10 +2310,24 @@
 ;;
 ;; Exceptions may propagate out of this procedure if they arise while
 ;; setting up (that is, before the first call to 'await' is made), say
-;; because a regular file is passed to this procedure or write errors
-;; occur on the first attempt to write to the port.  Subsequent
-;; exceptions (say, because of subsequent port errors) will propagate
-;; out of event-loop-run!.
+;; because a regular file is passed to this procedure or memory is
+;; exhausted.  With versions of this library before 0.13, this
+;; procedure would also raise an exception if write errors were
+;; encountered on the first attempt to write to the port, and any
+;; exceptions because of write errors on subsequent writes would
+;; propagate out of event-loop-run!.  Having write exceptions (say,
+;; because of EPIPE) interfering with anything using the event loop in
+;; this way was not a good approach, so from version 0.13 of this
+;; library if a write exception arises in this procedure, the
+;; exception will not be propagated but will instead be returned by
+;; this procedure so the user can decide what to do with it.  It is
+;; returned as a list, with car comprising an 'a-sync-i/o-exception
+;; symbol as a marker, cadr comprising the key of the i/o exception
+;; which has arisen (which for this procedure will always be
+;; 'c-write-error), and cddr as the args of the exception.  Otherwise
+;; this procedure returns #t, or #f if an exceptional condition
+;; ('excpt) is encountered (but an exceptional condition should never
+;; be encountered on an output port).
 ;;
 ;; This procedure is first available in version 0.11 of this library.
 (define await-put-bytevector! 
@@ -2326,58 +2337,49 @@
      (define length (bytevector-length bv))
      (_throw-exception-if-regular-file (fileno port))
 
-     (let ((index (c-write (fileno port) bv 0 length)))
+     (let ((index (catch #t
+     			 (lambda ()
+     			   (c-write (fileno port) bv 0 length))
+     			 (lambda args
+     			   (cons 'a-sync-i/o-exception args)))))
      ;; for testing
      ;;(let ((index 0))
-       ;; set up write watch if we haven't written everything
-       (if (< index length)
-	   ;; we watch on the file descriptor and not the port, because
-	   ;; we do not want buffering to be taken into account in
-	   ;; determining whether the port is ready for output
-	   (let ((fd (port->fdes port)))
-	     (a-sync-write-watch! resume
-				  fd
-				  (lambda (status)
-				    ;; if this procedure throws an
-				    ;; exception, the increment of the
-				    ;; revealed count of fd will not be
-				    ;; decremented because the next loop
-				    ;; below will not complete - so deal
-				    ;; with it here (it will also not be
-				    ;; decremented if the initial call
-				    ;; to a-sync-write-watch! fails
-				    ;; because of memory exhaustion, but
-				    ;; that spells the end of the
-				    ;; program anyway).  An exception
-				    ;; leaving this procedure will cause
-				    ;; the event loop to be reset
-				    ;; automatically, so we don't need
-				    ;; to bother with
-				    ;; event-loop-remove-write-watch!
-				    (catch #t
-				      (lambda ()
-					(if (eq? status 'excpt)
-					    #f
+       (cond
+	((list? index)
+	 index)
+	((< index length)
+	 ;; set up write watch if we haven't written everything.  We
+	 ;; watch on the file descriptor and not the port, because we
+	 ;; do not want buffering to be taken into account in
+	 ;; determining whether the port is ready for output
+	 (let ((fd (port->fdes port)))
+	   (a-sync-write-watch! resume
+				fd
+				(lambda (status)
+				  (if (eq? status 'excpt)
+				      #f
+				      (let ((res (catch #t
+							(lambda()
+							  (c-write fd bv index (- length index)))
+							(lambda args
+							  (cons 'a-sync-i/o-exception args)))))
+					(if (list? res)
+					    res
 					    (begin
-					      (set! index (+ index (c-write fd
-									    bv
-									    index
-									    (- length index))))
+					      (set! index (+ index res))
 					      (if (< index length)
 						  'more
-						  #t))))
-				      (lambda args
-					(release-port-handle port)
-					(apply throw args))))
-				  loop)
-	     (let next ((res (await)))
-	       (if (eq? res 'more)
-		   (next (await))
-		   (begin
-		     (event-loop-remove-write-watch! fd loop)
-		     (release-port-handle port)
-		     res))))
-	   #t)))))
+						  #t))))))
+				loop)
+	   (let next ((res (await)))
+	     (if (eq? res 'more)
+		 (next (await))
+		 (begin
+		   (event-loop-remove-write-watch! fd loop)
+		   (release-port-handle port)
+		   res)))))
+	(else
+	 #t))))))
 
 ;; This is a convenience procedure whose signature is:
 ;;
@@ -2391,12 +2393,9 @@
 ;; be written at any one time.  It is intended to be called within a
 ;; waitable procedure invoked by a-sync (which supplies the 'await'
 ;; and 'resume' arguments), and this procedure is implemented using
-;; await-put-bytevector!.  If an exceptional condition ('excpt) is
-;; encountered, #f will be returned, otherwise #t will be returned
-;; (but an exceptional condition should never be encountered on an
-;; output port).  The 'loop' argument is optional: this procedure
-;; operates on the event loop passed in as an argument, or if none is
-;; passed (or #f is passed), on the default event loop.
+;; await-put-bytevector!.  The 'loop' argument is optional: this
+;; procedure operates on the event loop passed in as an argument, or
+;; if none is passed (or #f is passed), on the default event loop.
 ;;
 ;; For reasons of efficiency, this procedure by-passes the port's
 ;; output buffer and sends the output to the underlying file
@@ -2420,10 +2419,24 @@
 ;;
 ;; Exceptions may propagate out of this procedure if they arise while
 ;; setting up (that is, before the first call to 'await' is made), say
-;; because a conversion error is encountered, a regular file is passed
-;; to this procedure or write errors occur on the first attempt to
-;; write to the port.  Subsequent exceptions (say, because of
-;; subsequent port errors) will propagate out of event-loop-run!.
+;; because a regular file is passed to this procedure, memory is
+;; exhausted or a conversion error arises.  With versions of this
+;; library before 0.13, this procedure would also raise an exception
+;; if write errors were encountered on the first attempt to write to
+;; the port, and any exceptions because of write errors on subsequent
+;; writes would propagate out of event-loop-run!.  Having write
+;; exceptions (say, because of EPIPE) interfering with anything using
+;; the event loop in this way was not a good approach, so from version
+;; 0.13 of this library if a write exception arises in this procedure,
+;; the exception will not be propagated but will instead be returned
+;; by this procedure so the user can decide what to do with it.  It is
+;; returned as a list, with car comprising an 'a-sync-i/o-exception
+;; symbol as a marker, cadr comprising the key of the i/o exception
+;; which has arisen (which for this procedure will always be
+;; 'c-write-error), and cddr as the args of the exception.  Otherwise
+;; this procedure returns #t, or #f if an exceptional condition
+;; ('excpt) is encountered (but an exceptional condition should never
+;; be encountered on an output port).
 ;;
 ;; The bytes to be sent will be converted from the passed in string
 ;; representation using the encoding of 'port' if a port encoding has
