@@ -65,6 +65,7 @@
   		     (string-append "GET " path " HTTP/1.1\r\nHost: "host"\r\n\r\n")))
 
 (set-default-event-loop!)
+(sigaction SIGPIPE SIG_IGN) ;; we want EPIPE, not SIGPIPE
 
 (a-sync
  (lambda (await resume)

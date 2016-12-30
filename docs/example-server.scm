@@ -43,6 +43,7 @@
 
 
 (set-default-event-loop!)
+(sigaction SIGPIPE SIG_IGN) ;; we want EPIPE, not SIGPIPE
 
 (define count 0)
 (define server-sock #f)
