@@ -1525,13 +1525,22 @@ the exception.  Otherwise this procedure returns #t, or #f if an
 exceptional condition (&rsquo;excpt) is encountered (but an exceptional
 condition should never be encountered on an output port).
 </p>
-<p>Exceptions may propagate out of this procedure if they arise while
-setting up (that is, before the first call to &rsquo;await&rsquo; is made), say
-because a regular file is passed to this procedure or write errors
-occur on the first attempt to write to the port.  Subsequent
-exceptions (say, because of subsequent port errors) will propagate out
-of event-loop-run!.
-</p>
+<p>Here is how EPIPE might be tested for:
+</p><div class="example">
+<pre class="example">(set-default-event-loop!) ;; if none has yet been set
+(a-sync (lambda (await resume)
+	  (let ((res (await-put-bytevector! await resume port bv)))
+	    (when (and (list? res)
+		       (eq? (car res) 'a-sync-i/o-exception))
+		  (if (= (caar (cddddr res)) EPIPE)
+		      (begin
+			... do something to cater for EPIPE ...)
+		      (begin
+			;; possibly rethrow the exception
+			(apply throw (cdr res))))))))
+(event-loop-run!)
+</pre></div>
+
 <p>This procedure is first available in version 0.11 of this library.
 </p>
 <p>An example of the use of await-put-string!, which is implemented using
@@ -1600,6 +1609,22 @@ the exception.  Otherwise this procedure returns #t, or #f if an
 exceptional condition (&rsquo;excpt) is encountered (but an exceptional
 condition should never be encountered on an output port).
 </p>
+<p>Here is how EPIPE might be tested for:
+</p><div class="example">
+<pre class="example">(set-default-event-loop!) ;; if none has yet been set
+(a-sync (lambda (await resume)
+	  (let ((res (await-put-string! await resume port &quot;test&quot;)))
+	    (when (and (list? res)
+		       (eq? (car res) 'a-sync-i/o-exception))
+		  (if (= (caar (cddddr res)) EPIPE)
+		      (begin
+			... do something to cater for EPIPE ...)
+		      (begin
+			;; possibly rethrow the exception
+			(apply throw (cdr res))))))))
+(event-loop-run!)
+</pre></div>
+
 <p>The bytes to be sent will be converted from the passed in string
 representation using the encoding of &rsquo;port&rsquo; if a port encoding has
 been set, or otherwise using the program&rsquo;s default port encoding, or

@@ -1875,12 +1875,19 @@ using event-post!.
      ('excpt) is encountered (but an exceptional condition should never
      be encountered on an output port).
 
-     Exceptions may propagate out of this procedure if they arise while
-     setting up (that is, before the first call to 'await' is made), say
-     because a regular file is passed to this procedure or write errors
-     occur on the first attempt to write to the port.  Subsequent
-     exceptions (say, because of subsequent port errors) will propagate
-     out of event-loop-run!.
+     Here is how EPIPE might be tested for:
+          (set-default-event-loop!) ;; if none has yet been set
+          (a-sync (lambda (await resume)
+          	  (let ((res (await-put-bytevector! await resume port bv)))
+          	    (when (and (list? res)
+          		       (eq? (car res) 'a-sync-i/o-exception))
+          		  (if (= (caar (cddddr res)) EPIPE)
+          		      (begin
+          			... do something to cater for EPIPE ...)
+          		      (begin
+          			;; possibly rethrow the exception
+          			(apply throw (cdr res))))))))
+          (event-loop-run!)
 
      This procedure is first available in version 0.11 of this library.
 
@@ -1947,6 +1954,20 @@ using event-post!.
      this procedure returns #t, or #f if an exceptional condition
      ('excpt) is encountered (but an exceptional condition should never
      be encountered on an output port).
+
+     Here is how EPIPE might be tested for:
+          (set-default-event-loop!) ;; if none has yet been set
+          (a-sync (lambda (await resume)
+          	  (let ((res (await-put-string! await resume port "test")))
+          	    (when (and (list? res)
+          		       (eq? (car res) 'a-sync-i/o-exception))
+          		  (if (= (caar (cddddr res)) EPIPE)
+          		      (begin
+          			... do something to cater for EPIPE ...)
+          		      (begin
+          			;; possibly rethrow the exception
+          			(apply throw (cdr res))))))))
+          (event-loop-run!)
 
      The bytes to be sent will be converted from the passed in string
      representation using the encoding of 'port' if a port encoding has
@@ -2998,9 +3019,9 @@ Node: Top85
 Node: overview1240
 Node: coroutines4178
 Node: event loop22274
-Node: sockets103974
-Node: monotonic time107162
-Node: gnome glib108593
-Node: compose148287
+Node: sockets104763
+Node: monotonic time107951
+Node: gnome glib109382
+Node: compose149076
 
 End Tag Table
