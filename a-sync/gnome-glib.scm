@@ -738,10 +738,23 @@
 ;; same thread as that in which the event loop runs.
 ;;
 ;; Exceptions may propagate out of this procedure if they arise while
-;; setting up (that is, before the first call to 'await' is made),
-;; which shouldn't happen unless memory is exhausted or a regular file
-;; is passed to this procedure.  Subsequent exceptions (say, because
-;; of port errors) will propagate out of g-main-loop-run.
+;; setting up (that is, before the first call to 'await' is made), say
+;; because a regular file is passed to this procedure or memory is
+;; exhausted.  With versions of this library before 0.13, this
+;; procedure would also raise an exception if write errors were
+;; encountered on the first attempt to write to the port, and any
+;; exceptions because of write errors on subsequent writes would
+;; propagate out of g-main-loop-run.  Having write exceptions (say,
+;; because of EPIPE) interfering with anything using the main loop in
+;; this way was not a good approach, so from version 0.13 of this
+;; library if a write exception arises in this procedure, the
+;; exception will not be propagated but will instead be returned by
+;; this procedure so the user can decide what to do with it.  It is
+;; returned as a list, with car comprising an 'a-sync-i/o-exception
+;; symbol as a marker, cadr comprising the key of the i/o exception
+;; which has arisen (which for this procedure will always be
+;; 'c-write-error), and cddr as the args of the exception.  Otherwise
+;; this procedure returns #t.
 ;;
 ;; This procedure is first available in version 0.11 of this library.
 (define (await-glib-put-bytevector await resume port bv)
@@ -749,33 +762,42 @@
   (define fd (fileno port))
   (_throw-exception-if-regular-file fd)
 
-  (let ((index (c-write fd bv 0 length)))
-    ;; for testing
-    ;;(let ((index 0))
-    ;; set up write watch if we haven't written everything
-    (if (< index length)
-	(letrec ((id (a-sync-glib-write-watch resume
-					      (port->fdes port)
-					      (lambda (ioc status)
-						(catch #t
-						  (lambda ()
-						    (set! index (+ index (c-write fd
-										  bv
-										  index
-										  (- length index))))
-						    (if (< index length)
-							'more
-							#f))
-						  (lambda args
-						    (g-source-remove id)
-						    (release-port-handle port)
-						    (apply throw args)))))))
-	  (let next ((res (await)))
-	    (if (eq? res 'more)
-		(next (await))
-		(begin
-		  (g-source-remove id)
-		  (release-port-handle port))))))))
+  (let ((index (catch #t
+  		      (lambda ()
+  			(c-write fd bv 0 length))
+  		      (lambda args
+  			(cons 'a-sync-i/o-exception args)))))
+  ;; for testing
+  ;;(let ((index 0))
+    (cond
+     ((list? index)
+      index)
+     ((< index length)
+      ;; set up write watch if we haven't written everything
+      (let ((id (a-sync-glib-write-watch resume
+					 (port->fdes port)
+					 (lambda (ioc status)
+					   (let ((res (catch #t
+							     (lambda()
+							       (c-write fd bv index (- length index)))
+							     (lambda args
+							       (cons 'a-sync-i/o-exception args)))))
+					     (if (list? res)
+						 res
+						 (begin
+						   (set! index (+ index res))
+						   (if (< index length)
+						       'more
+						       #t))))))))
+	(let next ((res (await)))
+	  (if (eq? res 'more)
+	      (next (await))
+	      (begin
+		(g-source-remove id)
+		(release-port-handle port)
+		res)))))
+     (else
+      #t))))
 
 ;; This is a convenience procedure which will start a write watch on
 ;; 'port' for writing a string to the port.  It calls 'await' while
@@ -805,11 +827,23 @@
 ;; same thread as that in which the event loop runs.
 ;;
 ;; Exceptions may propagate out of this procedure if they arise while
-;; setting up (that is, before the first call to 'await' is made),
-;; which shouldn't happen unless memory is exhausted, a conversion
-;; error is encountered or a regular file is passed to this procedure.
-;; Subsequent exceptions (say, because of port errors) will propagate
-;; out of g-main-loop-run.
+;; setting up (that is, before the first call to 'await' is made), say
+;; because a regular file is passed to this procedure, memory is
+;; exhausted or a conversion error is encountered.  With versions of
+;; this library before 0.13, this procedure would also raise an
+;; exception if write errors were encountered on the first attempt to
+;; write to the port, and any exceptions because of write errors on
+;; subsequent writes would propagate out of g-main-loop-run.  Having
+;; write exceptions (say, because of EPIPE) interfering with anything
+;; using the main loop in this way was not a good approach, so from
+;; version 0.13 of this library if a write exception arises in this
+;; procedure, the exception will not be propagated but will instead be
+;; returned by this procedure so the user can decide what to do with
+;; it.  It is returned as a list, with car comprising an
+;; 'a-sync-i/o-exception symbol as a marker, cadr comprising the key
+;; of the i/o exception which has arisen (which for this procedure
+;; will always be 'c-write-error), and cddr as the args of the
+;; exception.  Otherwise this procedure returns #t.
 ;;
 ;; The bytes to be sent will be converted from the passed in string
 ;; representation using the encoding of 'port' if a port encoding has

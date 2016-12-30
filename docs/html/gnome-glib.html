@@ -739,11 +739,40 @@ block on write and are always signalled as ready.
 thread as that in which the event loop runs.
 </p>
 <p>Exceptions may propagate out of this procedure if they arise while
-setting up (that is, before the first call to &rsquo;await&rsquo; is made), which
-shouldn&rsquo;t happen unless memory is exhausted or a regular file is
-passed to this procedure.  Subsequent exceptions (say, because of port
-errors) will propagate out of g-main-loop-run.
+setting up (that is, before the first call to &rsquo;await&rsquo; is made), say
+because a regular file is passed to this procedure or memory is
+exhausted.  With versions of this library before 0.13, this procedure
+would also raise an exception if write errors were encountered on the
+first attempt to write to the port, and any exceptions because of
+write errors on subsequent writes would propagate out of
+g-main-loop-run.  Having write exceptions (say, because of EPIPE)
+interfering with anything using the main loop in this way was not a
+good approach, so from version 0.13 of this library if a write
+exception arises in this procedure, the exception will not be
+propagated but will instead be returned by this procedure so the user
+can decide what to do with it.  It is returned as a list, with car
+comprising an &rsquo;a-sync-i/o-exception symbol as a marker, cadr
+comprising the key of the i/o exception which has arisen (which for
+this procedure will always be &rsquo;c-write-error), and cddr as the args of
+the exception.  Otherwise this procedure returns #t.
 </p>
+<p>Here is how EPIPE might be tested for:
+</p><div class="example">
+<pre class="example">(define main-loop (g-main-loop-new #f #f))
+(a-sync (lambda (await resume)
+	  (let ((res (await-glib-put-bytevector await resume port bv)))
+	    (when (and (list? res)
+		       (eq? (car res) 'a-sync-i/o-exception))
+		  (if (= (caar (cddddr res)) EPIPE)
+		      (begin
+			... do something to cater for EPIPE ...)
+		      (begin
+			;; possibly rethrow the exception
+			(apply throw (cdr res))))))
+	  (g-main-loop-quit main-loop)))
+(g-main-loop-run main-loop)
+</pre></div>
+
 <p>This procedure is first available in version 0.11 of this library.
 </p></dd></dl>
 
@@ -777,12 +806,40 @@ block on write and are always signalled as ready.
 thread as that in which the event loop runs.
 </p>
 <p>Exceptions may propagate out of this procedure if they arise while
-setting up (that is, before the first call to &rsquo;await&rsquo; is made), which
-shouldn&rsquo;t happen unless memory is exhausted, a conversion error is
-encountered or a regular file is passed to this procedure.  Subsequent
-exceptions (say, because of port errors) will propagate out of
-g-main-loop-run.
+setting up (that is, before the first call to &rsquo;await&rsquo; is made), say
+because a regular file is passed to this procedure, memory is
+exhausted or a conversion error is encountered.  With versions of this
+library before 0.13, this procedure would also raise an exception if
+write errors were encountered on the first attempt to write to the
+port, and any exceptions because of write errors on subsequent writes
+would propagate out of g-main-loop-run.  Having write exceptions (say,
+because of EPIPE) interfering with anything using the main loop in
+this way was not a good approach, so from version 0.13 of this library
+if a write exception arises in this procedure, the exception will not
+be propagated but will instead be returned by this procedure so the
+user can decide what to do with it.  It is returned as a list, with
+car comprising an &rsquo;a-sync-i/o-exception symbol as a marker, cadr
+comprising the key of the i/o exception which has arisen (which for
+this procedure will always be &rsquo;c-write-error), and cddr as the args of
+the exception.  Otherwise this procedure returns #t.
 </p>
+<p>Here is how EPIPE might be tested for:
+</p><div class="example">
+<pre class="example">(define main-loop (g-main-loop-new #f #f))
+(a-sync (lambda (await resume)
+	  (let ((res (await-glib-put-string await resume port &quot;test&quot;)))
+	    (when (and (list? res)
+		       (eq? (car res) 'a-sync-i/o-exception))
+		  (if (= (caar (cddddr res)) EPIPE)
+		      (begin
+			... do something to cater for EPIPE ...)
+		      (begin
+			;; possibly rethrow the exception
+			(apply throw (cdr res))))))
+	  (g-main-loop-quit main-loop)))
+(g-main-loop-run main-loop)
+</pre></div>
+
 <p>The bytes to be sent will be converted from the passed in string
 representation using the encoding of &rsquo;port&rsquo; if a port encoding has
 been set, or otherwise using the program&rsquo;s default port encoding, or
