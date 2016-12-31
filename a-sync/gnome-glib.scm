@@ -64,6 +64,7 @@
 
 ;; We need to import the definition of the c-write procedure, as
 ;; provided by unix_write.c. 
+(define c-write #f) ;; stop bogus unbound variable warnings on compilation
 (load-extension "libguile-a-sync-0" "init_a_sync_c_write")
 
 ;; This is a convenience procedure which will run 'thunk' in its own
