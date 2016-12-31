@@ -673,35 +673,34 @@ thread as that in which the event loop runs.
 
 Exceptions may propagate out of this procedure if they arise while
 setting up (that is, before the first call to 'await' is made), say
-because a regular file is passed to this procedure or memory is
-exhausted.  With versions of this library before 0.13, this procedure
-would also raise an exception if write errors were encountered on the
-first attempt to write to the port, and any exceptions because of
-write errors on subsequent writes would propagate out of
-g-main-loop-run.  Having write exceptions (say, because of EPIPE)
+because a regular file is passed to this procedure, memory is
+exhausted or a write exception is encountered.  With versions of this
+library before 0.13, any exceptions because of write errors after the
+first write would propagate out of g-main-loop-run and could not be
+caught locally.  Having write exceptions (say, because of EPIPE)
 interfering with anything using the main loop in this way was not a
-good approach, so from version 0.13 of this library if a write
-exception arises in this procedure, the exception will not be
-propagated but will instead be returned by this procedure so the user
-can decide what to do with it.  It is returned as a list, with car
-comprising an 'a-sync-i/o-exception symbol as a marker, cadr
-comprising the key of the i/o exception which has arisen (which for
-this procedure will always be 'c-write-error), and cddr as the args of
-the exception.  Otherwise this procedure returns #t.
+good approach, so from version 0.13 of this library all write
+exceptions will propagate in the first instance out of this procedure
+so that they may be caught locally, say by putting a catch expression
+around the call to this procedure.
 
 Here is how EPIPE might be tested for:
 @example
 (define main-loop (g-main-loop-new #f #f))
 (a-sync (lambda (await resume)
-	  (let ((res (await-glib-put-bytevector await resume port bv)))
-	    (when (and (list? res)
-		       (eq? (car res) 'a-sync-i/o-exception))
-		  (if (= (caar (cddddr res)) EPIPE)
-		      (begin
-			... do something to cater for EPIPE ...)
-		      (begin
-			;; possibly rethrow the exception
-			(apply throw (cdr res))))))
+	  (catch 'c-write-error
+		 (lambda ()
+		   (await-glib-put-bytevector await resume port bv))
+		 (lambda (key . args)
+		   (if (and (>= (length args) 3)
+			    (pair? (cddr args))
+			    (pair? (caddr args))
+			    (eqv? (caaddr args) EPIPE))
+		       (begin
+			 ... do something to cater for EPIPE ...)
+		       (begin
+			 ;; possibly rethrow the exception
+			 (apply throw key args)))))
 	  (g-main-loop-quit main-loop)))
 (g-main-loop-run main-loop)
 @end example
@@ -740,34 +739,34 @@ thread as that in which the event loop runs.
 Exceptions may propagate out of this procedure if they arise while
 setting up (that is, before the first call to 'await' is made), say
 because a regular file is passed to this procedure, memory is
-exhausted or a conversion error is encountered.  With versions of this
-library before 0.13, this procedure would also raise an exception if
-write errors were encountered on the first attempt to write to the
-port, and any exceptions because of write errors on subsequent writes
-would propagate out of g-main-loop-run.  Having write exceptions (say,
-because of EPIPE) interfering with anything using the main loop in
-this way was not a good approach, so from version 0.13 of this library
-if a write exception arises in this procedure, the exception will not
-be propagated but will instead be returned by this procedure so the
-user can decide what to do with it.  It is returned as a list, with
-car comprising an 'a-sync-i/o-exception symbol as a marker, cadr
-comprising the key of the i/o exception which has arisen (which for
-this procedure will always be 'c-write-error), and cddr as the args of
-the exception.  Otherwise this procedure returns #t.
+exhausted, a conversion error arises or a write exception is
+encountered.  With versions of this library before 0.13, any
+exceptions because of write errors after the first write would
+propagate out of g-main-loop-run and could not be caught locally.
+Having write exceptions (say, because of EPIPE) interfering with
+anything using the main loop in this way was not a good approach, so
+from version 0.13 of this library all write exceptions will propagate
+in the first instance out of this procedure so that they may be caught
+locally, say by putting a catch expression around the call to this
+procedure.
 
 Here is how EPIPE might be tested for:
 @example
 (define main-loop (g-main-loop-new #f #f))
 (a-sync (lambda (await resume)
-	  (let ((res (await-glib-put-string await resume port "test")))
-	    (when (and (list? res)
-		       (eq? (car res) 'a-sync-i/o-exception))
-		  (if (= (caar (cddddr res)) EPIPE)
-		      (begin
-			... do something to cater for EPIPE ...)
-		      (begin
-			;; possibly rethrow the exception
-			(apply throw (cdr res))))))
+	  (catch 'c-write-error
+		 (lambda ()
+		   (await-glib-put-string await resume port "test"))
+		 (lambda (key . args)
+		   (if (and (>= (length args) 3)
+			    (pair? (cddr args))
+			    (pair? (caddr args))
+			    (eqv? (caaddr args) EPIPE))
+		       (begin
+			 ... do something to cater for EPIPE ...)
+		       (begin
+			 ;; possibly rethrow the exception
+			 (apply throw key args)))))
 	  (g-main-loop-quit main-loop)))
 (g-main-loop-run main-loop)
 @end example
