@@ -563,20 +563,26 @@ thread as that in which the default glib main loop runs.
 </p>
 <p>Exceptions may propagate out of this procedure if they arise while
 setting up (that is, before the first call to &rsquo;await&rsquo; is made), which
-shouldn&rsquo;t happen unless memory is exhausted.  Subsequent exceptions
-(say, because of port or conversion errors) will propagate out of
-g-main-loop-run.
+shouldn&rsquo;t happen unless memory is exhausted.  With versions of this
+library before 0.13, any exceptions because of read errors or
+conversion errors would propagate out of g-main-loop-run and could not
+be caught locally.  Having read or conversion errors interfering with
+anything using the main loop in this way was not a good approach, so
+from version 0.13 of this library all read or conversion exceptions
+will propagate in the first instance out of this procedure so that
+they may be caught locally, say by putting a catch expression around
+the call to this procedure, and only out of g-main-loop-run if not
+caught in that way.
 </p>
 <p>From version 0.6, the bytes comprising the input text will be
 converted to their string representation using the encoding of &rsquo;port&rsquo;
 if a port encoding has been set, or otherwise using the program&rsquo;s
 default port encoding, or if neither has been set using iso-8859-1
-(Latin-1).  Exceptions from conversion errors will, as mentioned,
-propagate out of g-main-loop-run.  Conversion errors should not arise
-with iso-8859-1 encoding, although the string may not necessarily have
-the desired meaning for the program concerned if the input encoding is
-in fact different.  From version 0.7, this procedure uses the
-conversion strategy for &rsquo;port&rsquo; (which defaults at program start-up to
+(Latin-1).  Exceptions from conversion errors should not arise with
+iso-8859-1 encoding, although the string may not necessarily have the
+desired meaning for the program concerned if the input encoding is in
+fact different.  From version 0.7, this procedure uses the conversion
+strategy for &rsquo;port&rsquo; (which defaults at program start-up to
 &rsquo;substitute); version 0.6 instead always used a conversion strategy of
 &rsquo;error if encountering unconvertible characters).
 </p>
@@ -634,8 +640,15 @@ thread as that in which the default glib main loop runs.
 </p>
 <p>Exceptions may propagate out of this procedure if they arise while
 setting up (that is, before the first call to &rsquo;await&rsquo; is made), which
-shouldn&rsquo;t happen unless memory is exhausted.  Subsequent exceptions
-(say, because of port errors) will propagate out of g-main-loop-run.
+shouldn&rsquo;t happen unless memory is exhausted.  With versions of this
+library before 0.13, any exceptions because of read errors would
+propagate out of g-main-loop-run and could not be caught locally.
+Having read errors interfering with anything using the main loop in
+this way was not a good approach, so from version 0.13 of this library
+all read exceptions will propagate in the first instance out of this
+procedure so that they may be caught locally, say by putting a catch
+expression around the call to this procedure, and only out of
+g-main-loop-run if not caught in that way.
 </p>
 <p>This procedure is first available in version 0.11 of this library.
 </p></dd></dl>
