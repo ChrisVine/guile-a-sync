@@ -1,4 +1,4 @@
-;; Copyright (C) 2016 Chris Vine
+;; Copyright (C) 2016 and 2017 Chris Vine
 
 ;; This library is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU Lesser General Public
@@ -466,19 +466,25 @@
 ;;
 ;; Exceptions may propagate out of this procedure if they arise while
 ;; setting up (that is, before the first call to 'await' is made),
-;; which shouldn't happen unless memory is exhausted.  Subsequent
-;; exceptions (say, because of port or conversion errors) will
-;; propagate out of g-main-loop-run.
+;; which shouldn't happen unless memory is exhausted.  With versions
+;; of this library before 0.13, any exceptions because of read errors
+;; or conversion errors would propagate out of g-main-loop-run and
+;; could not be caught locally.  Having read or conversion errors
+;; interfering with anything using the main loop in this way was not a
+;; good approach, so from version 0.13 of this library all read or
+;; conversion exceptions will propagate in the first instance out of
+;; this procedure so that they may be caught locally, say by putting a
+;; catch expression around the call to this procedure, and only out of
+;; g-main-loop-run if not caught in that way.
 ;;
 ;; From version 0.6, the bytes comprising the input text will be
 ;; converted to their string representation using the encoding of
 ;; 'port' if a port encoding has been set, or otherwise using the
 ;; program's default port encoding, or if neither has been set using
-;; iso-8859-1 (Latin-1).  Exceptions from conversion errors will, as
-;; mentioned, propagate out of g-main-loop-run.  Conversion errors
-;; should not arise with iso-8859-1 encoding, although the string may
-;; not necessarily have the desired meaning for the program concerned
-;; if the input encoding is in fact different.  From version 0.7, this
+;; iso-8859-1 (Latin-1).  Exceptions from conversion errors should not
+;; arise with iso-8859-1 encoding, although the string may not
+;; necessarily have the desired meaning for the program concerned if
+;; the input encoding is in fact different.  From version 0.7, this
 ;; procedure uses the conversion strategy for 'port' (which defaults
 ;; at program start-up to 'substitute); version 0.6 instead always
 ;; used a conversion strategy of 'error if encountering unconvertible
@@ -521,7 +527,7 @@
   (define id (a-sync-glib-read-watch resume
 				     (port->fdes port)
 				     (lambda (ioc status)
-				       (catch #t
+				       (catch #t ;; in case of string conversion errors
 					 (lambda ()
 					   ;; this doesn't work.  The wrapper does not seem to provide
 					   ;; any way of extracting GIOCondition enumeration values
@@ -540,10 +546,12 @@
 								(and (defined? 'EWOULDBLOCK) 
 								     (= EWOULDBLOCK (system-error-errno args))))
 							    'more
-							    (apply throw args))))))
+							    args)))))
 					       (cond
 						((eq? u8 'more)
 						 'more)
+						((list? u8)
+						 u8)
 						((eof-object? u8)
 						 (if (= text-len 0)
 						     u8
@@ -561,16 +569,19 @@
 						     (next)
 						     'more))))))
 					 (lambda args
-					   (g-source-remove id)
-					   (release-port-handle port)
-					   (apply throw args))))))
+					   args)))))
   (let next ((res (await)))
-    (if (eq? res 'more)
-	(next (await))
-	(begin
-	  (g-source-remove id)
-	  (release-port-handle port)
-	  res))))
+    (cond
+     ((eq? res 'more)
+      (next (await)))
+     ((list? res)
+      (g-source-remove id)
+      (release-port-handle port)
+      (apply throw res))
+     (else
+      (g-source-remove id)
+      (release-port-handle port)
+      res))))
 
 ;; This is a convenience procedure for use with a glib main loop,
 ;; which will start a read watch on 'port' for a block of data, such
@@ -605,9 +616,16 @@
 ;;
 ;; Exceptions may propagate out of this procedure if they arise while
 ;; setting up (that is, before the first call to 'await' is made),
-;; which shouldn't happen unless memory is exhausted.  Subsequent
-;; exceptions (say, because of port errors) will propagate out of
-;; g-main-loop-run.
+;; which shouldn't happen unless memory is exhausted.  With versions
+;; of this library before 0.13, any exceptions because of read errors
+;; would propagate out of g-main-loop-run and could not be caught
+;; locally.  Having read errors interfering with anything using the
+;; main loop in this way was not a good approach, so from version 0.13
+;; of this library all read exceptions will propagate in the first
+;; instance out of this procedure so that they may be caught locally,
+;; say by putting a catch expression around the call to this
+;; procedure, and only out of g-main-loop-run if not caught in that
+;; way.
 ;;
 ;; This procedure is first available in version 0.11 of this library.
 (define (await-glib-getblock await resume port size)
@@ -616,52 +634,53 @@
   (define id (a-sync-glib-read-watch resume
 				     (port->fdes port)
 				     (lambda (ioc status)
-				       (catch #t
-					 (lambda ()
-					   ;; this doesn't work.  The wrapper does not seem to provide
-					   ;; any way of extracting GIOCondition enumeration values
-					   ;; which actually works.  However, 'err or 'pri should cause
-					   ;; a read of the port to return an eof-object
-					   ;; (if (or (eq? status 'pri)
-					   ;; 	      (eq? status 'err))
-					   ;;     (cons #f #f)
-					   (let next ()
-					     (let ((u8
-						    (catch 'system-error
-						      (lambda ()
-							(get-u8 port))
-						      (lambda args
-							(if (or (= EAGAIN (system-error-errno args))
-								(and (defined? 'EWOULDBLOCK) 
-								     (= EWOULDBLOCK (system-error-errno args))))
-							    'more
-							    (apply throw args))))))
-					       (cond
-						((eq? u8 'more)
-						 (cons 'more #f))
-						((eof-object? u8)
-						 (if (= index 0)
-						     (cons u8 #f)
-						     (cons bv index)))
-						(else
-						 (bytevector-u8-set! bv index u8)
-						 (set! index (1+ index))
-						 (if (= index size)
-						     (cons bv size)
-						     (if (char-ready? port)
-							 (next)
-							 (cons 'more #f))))))))
-					 (lambda args
-					   (g-source-remove id)
-					   (release-port-handle port)
-					   (apply throw args))))))
+				       ;; this doesn't work.  The wrapper does not seem to provide
+				       ;; any way of extracting GIOCondition enumeration values
+				       ;; which actually works.  However, 'err or 'pri should cause
+				       ;; a read of the port to return an eof-object
+				       ;; (if (or (eq? status 'pri)
+				       ;; 	      (eq? status 'err))
+				       ;;     (cons #f #f)
+				       (let next ()
+					 (let ((u8
+						(catch 'system-error
+						       (lambda ()
+							 (get-u8 port))
+						       (lambda args
+							 (if (or (= EAGAIN (system-error-errno args))
+								 (and (defined? 'EWOULDBLOCK) 
+								      (= EWOULDBLOCK (system-error-errno args))))
+							     'more
+							     args)))))
+					   (cond
+					    ((eq? u8 'more)
+					     (cons 'more #f))
+					    ((list? u8)
+					     (cons u8 #f))
+					    ((eof-object? u8)
+					     (if (= index 0)
+						 (cons u8 #f)
+						 (cons bv index)))
+					    (else
+					     (bytevector-u8-set! bv index u8)
+					     (set! index (1+ index))
+					     (if (= index size)
+						 (cons bv size)
+						 (if (char-ready? port)
+						     (next)
+						     (cons 'more #f))))))))))
   (let next ((res (await)))
-    (if (eq? (car res) 'more)
-	(next (await))
-	(begin
-	  (g-source-remove id)
-	  (release-port-handle port)
-	  res))))
+    (cond
+     ((eq? (car res) 'more)
+      (next (await)))
+     ((list? (car res))
+      (g-source-remove id)
+      (release-port-handle port)
+      (apply throw (car res)))
+     (else
+      (g-source-remove id)
+      (release-port-handle port)
+      res))))
 
 ;; This is a convenience procedure for use with a glib main loop,
 ;; which will run 'proc' in the default glib main loop whenever the

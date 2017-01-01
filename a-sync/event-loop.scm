@@ -1,4 +1,4 @@
-;; Copyright (C) 2014 and 2016 Chris Vine
+;; Copyright (C) 2014 to 2017 Chris Vine
 
 ;; This library is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU Lesser General Public
@@ -1445,19 +1445,25 @@
 ;;
 ;; Exceptions may propagate out of this procedure if they arise while
 ;; setting up (that is, before the first call to 'await' is made),
-;; which shouldn't happen unless memory is exhausted.  Subsequent
-;; exceptions (say, because of port or conversion errors) will
-;; propagate out of event-loop-run!.
+;; which shouldn't happen unless memory is exhausted.  With versions
+;; of this library before 0.13, any exceptions because of read errors
+;; or conversion errors would propagate out of event-loop-run! and
+;; could not be caught locally.  Having read or conversion errors
+;; interfering with anything using the event loop in this way was not
+;; a good approach, so from version 0.13 of this library all read or
+;; conversion exceptions will propagate in the first instance out of
+;; this procedure so that they may be caught locally, say by putting a
+;; catch expression around the call to this procedure, and only out of
+;; event-loop-run! if not caught in that way.
 ;;
 ;; From version 0.6, the bytes comprising the input text will be
 ;; converted to their string representation using the encoding of
 ;; 'port' if a port encoding has been set, or otherwise using the
 ;; program's default port encoding, or if neither has been set using
-;; iso-8859-1 (Latin-1).  Exceptions from conversion errors will, as
-;; mentioned, propagate out of event-loop-run!.  Conversion errors
-;; should not arise with iso-8859-1 encoding, although the string may
-;; not necessarily have the desired meaning for the program concerned
-;; if the input encoding is in fact different.  From version 0.7, this
+;; iso-8859-1 (Latin-1).  Exceptions from conversion errors should not
+;; arise with iso-8859-1 encoding, although the string may not
+;; necessarily have the desired meaning for the program concerned if
+;; the input encoding is in fact different.  From version 0.7, this
 ;; procedure uses the conversion strategy for 'port' (which defaults
 ;; at program start-up to 'substitute); version 0.6 instead always
 ;; used a conversion strategy of 'error if encountering unconvertible
@@ -1509,43 +1515,53 @@
 			   (lambda (status)
 			     (if (eq? status 'excpt)
 				 #f
-				 (let next ()
-				   (let ((u8
-					  (catch 'system-error
-					    (lambda ()
-					      (get-u8 port))
-					    (lambda args
-					      (if (or (= EAGAIN (system-error-errno args))
-						      (and (defined? 'EWOULDBLOCK) 
-							   (= EWOULDBLOCK (system-error-errno args))))
-						  'more
-						  (apply throw args))))))
-				     (cond
-				      ((eq? u8 'more)
-				       'more)
-				      ((eof-object? u8)
-				       (if (= text-len 0)
-					   u8
-					   (make-outstring)))
-				      ;; just swallow a DOS-style CR character
-				      ((= u8 (char->integer #\return))
-				       (if (char-ready? port)
-					   (next)
-					   'more))
-				      ((= u8 (char->integer #\newline))
-				       (make-outstring))
-				      (else
-				       (append-byte! u8)
-				       (if (char-ready? port)
-					   (next)
-					   'more)))))))
+				 (catch #t ;; in case of string conversion errors
+				   (lambda ()
+				     (let next ()
+				       (let ((u8
+					      (catch 'system-error
+						     (lambda ()
+						       (get-u8 port))
+						     (lambda args
+						       (if (or (= EAGAIN (system-error-errno args))
+							       (and (defined? 'EWOULDBLOCK) 
+								    (= EWOULDBLOCK (system-error-errno args))))
+							   'more
+							   args)))))
+					 (cond
+					  ((eq? u8 'more)
+					   'more)
+					  ((list? u8)
+					   u8)
+					  ((eof-object? u8)
+					   (if (= text-len 0)
+					       u8
+					       (make-outstring)))
+					  ;; just swallow a DOS-style CR character
+					  ((= u8 (char->integer #\return))
+					   (if (char-ready? port)
+					       (next)
+					       'more))
+					  ((= u8 (char->integer #\newline))
+					   (make-outstring))
+					  (else
+					   (append-byte! u8)
+					   (if (char-ready? port)
+					       (next)
+					       'more))))))
+				   (lambda args
+				     args))))
 			   loop))
      (let next ((res (await)))
-       (if (eq? res 'more)
-	   (next (await))
-	   (begin
-	     (event-loop-remove-read-watch! port loop)
-	     res))))))
+       (cond
+	((eq? res 'more)
+	 (next (await)))
+	((list? res)
+	 (event-loop-remove-read-watch! port loop)
+	 (apply throw res))
+	(else
+	 (event-loop-remove-read-watch! port loop)
+	 res))))))
 
 ;; This is a convenience procedure whose signature is:
 ;;
@@ -1583,25 +1599,31 @@
 ;;
 ;; Exceptions may propagate out of this procedure if they arise while
 ;; setting up (that is, before the first call to 'await' is made),
-;; which shouldn't happen unless memory is exhausted.  Subsequent
-;; exceptions (say, because of port or conversion errors) will
-;; propagate out of event-loop-run!.  Exceptions thrown by 'proc', if
-;; not caught locally, will also propagate out of event-loop-run!.
+;; which shouldn't happen unless memory is exhausted.  With versions
+;; of this library before 0.13, any exceptions because of read errors
+;; or conversion errors would propagate out of event-loop-run! and
+;; could not be caught locally.  Having read or conversion errors
+;; interfering with anything using the event loop in this way was not
+;; a good approach, so from version 0.13 of this library all read or
+;; conversion exceptions will propagate in the first instance out of
+;; this procedure so that they may be caught locally, say by putting a
+;; catch expression around the call to this procedure, and only out of
+;; event-loop-run! if not caught in that way.  Exceptions raised by
+;; 'proc', if not caught locally, will also propagate out of
+;; event-loop-run!.
 ;;
 ;; This procedure is available from version 0.3.  From version 0.6,
 ;; the bytes comprising the input text will be converted to their
 ;; string representation using the encoding of 'port' if a port
 ;; encoding has been set, or otherwise using the program's default
 ;; port encoding, or if neither has been set using iso-8859-1
-;; (Latin-1).  Exceptions from conversion errors will, as mentioned,
-;; propagate out of event-loop-run!.  Conversion errors should not
-;; arise with iso-8859-1 encoding, although strings may not
-;; necessarily have the desired meaning for the program concerned if
-;; the input encoding is in fact different.  From version 0.7, this
-;; procedure uses the conversion strategy for 'port' (which defaults
-;; at program start-up to 'substitute); version 0.6 instead always
-;; used a conversion strategy of 'error if encountering unconvertible
-;; characters).
+;; (Latin-1).  Exceptions from conversion errors should not arise with
+;; iso-8859-1 encoding, although strings may not necessarily have the
+;; desired meaning for the program concerned if the input encoding is
+;; in fact different.  From version 0.7, this procedure uses the
+;; conversion strategy for 'port' (which defaults at program start-up
+;; to 'substitute); version 0.6 instead always used a conversion
+;; strategy of 'error if encountering unconvertible characters).
 ;;
 ;; From version 0.6, this procedure may be used with an end-of-line
 ;; representation of either a line-feed (\n) or a carriage-return and
@@ -1652,40 +1674,46 @@
 			   (lambda (status)
 			     (if (eq? status 'excpt)
 				 #f
-				 (let next ()
-				   (let ((u8
-					  (catch 'system-error
-					    (lambda ()
-					      (get-u8 port))
-					    (lambda args
-					      (if (or (= EAGAIN (system-error-errno args))
-						      (and (defined? 'EWOULDBLOCK) 
-							   (= EWOULDBLOCK (system-error-errno args))))
-						  'more
-						  (apply throw args))))))
-				     (cond
-				      ((eq? u8 'more)
-				       'more)
-				      ((eof-object? u8)
-				       (if (= text-len 0)
-					   u8
+				 (catch #t ;; in case of string conversion errors
+				   (lambda ()
+				     (let next ()
+				       (let ((u8
+					      (catch 'system-error
+						(lambda ()
+						  (get-u8 port))
+						(lambda args
+						  (if (or (= EAGAIN (system-error-errno args))
+							  (and (defined? 'EWOULDBLOCK) 
+							       (= EWOULDBLOCK (system-error-errno args))))
+						      'more
+						      args)))))
+					 (cond
+					  ((eq? u8 'more)
+					   'more)
+					  ((list? u8)
+					   u8)
+					  ((eof-object? u8)
+					   (if (= text-len 0)
+					       u8
+					       (let ((line (make-outstring)))
+						 (reset)
+						 line)))
+					  ;; just swallow a DOS-style CR character
+					  ((= u8 (char->integer #\return))
+					   (if (char-ready? port)
+					       (next)
+					       'more))
+					  ((= u8 (char->integer #\newline))
 					   (let ((line (make-outstring)))
 					     (reset)
-					     line)))
-				      ;; just swallow a DOS-style CR character
-				      ((= u8 (char->integer #\return))
-				       (if (char-ready? port)
-					   (next)
-					   'more))
-				      ((= u8 (char->integer #\newline))
-				       (let ((line (make-outstring)))
-					 (reset)
-					 line))
-				      (else
-				       (append-byte! u8)
-				       (if (char-ready? port)
-					   (next)
-					   'more)))))))
+					     line))
+					  (else
+					   (append-byte! u8)
+					   (if (char-ready? port)
+					       (next)
+					       'more))))))
+				   (lambda args
+				     args))))
 			   loop))
      ;; exceptions thrown from the remainder of this procedure (and in
      ;; particular from 'proc') will in the first instance be thrown
@@ -1700,6 +1728,8 @@
 		(cond
 		 ((eq? res 'more)
 		  (next (await)))
+		 ((list? res)
+		  (apply throw res))
 		 ((or (eof-object? res)
 		      (not res))
 		  (event-loop-remove-read-watch! port loop)
@@ -1754,25 +1784,31 @@
 ;;
 ;; Exceptions may propagate out of this procedure if they arise while
 ;; setting up (that is, before the first call to 'await' is made),
-;; which shouldn't happen unless memory is exhausted.  Subsequent
-;; exceptions (say, because of port or conversion errors) will
-;; propagate out of event-loop-run!.  Exceptions thrown by 'proc', if
-;; not caught locally, will also propagate out of event-loop-run!.
+;; which shouldn't happen unless memory is exhausted.  With versions
+;; of this library before 0.13, any exceptions because of read errors
+;; or conversion errors would propagate out of event-loop-run! and
+;; could not be caught locally.  Having read or conversion errors
+;; interfering with anything using the event loop in this way was not
+;; a good approach, so from version 0.13 of this library all read or
+;; conversion exceptions will propagate in the first instance out of
+;; this procedure so that they may be caught locally, say by putting a
+;; catch expression around the call to this procedure, and only out of
+;; event-loop-run! if not caught in that way.  Exceptions raised by
+;; 'proc', if not caught locally, will also propagate out of
+;; event-loop-run!.
 ;;
 ;; This procedure is available from version 0.4.  From version 0.6,
 ;; the bytes comprising the input text will be converted to their
 ;; string representation using the encoding of 'port' if a port
 ;; encoding has been set, or otherwise using the program's default
 ;; port encoding, or if neither has been set using iso-8859-1
-;; (Latin-1).  Exceptions from conversion errors will, as mentioned,
-;; propagate out of event-loop-run!.  Conversion errors should not
-;; arise with iso-8859-1 encoding, although strings may not
-;; necessarily have the desired meaning for the program concerned if
-;; the input encoding is in fact different.  From version 0.7, this
-;; procedure uses the conversion strategy for 'port' (which defaults
-;; at program start-up to 'substitute); version 0.6 instead always
-;; used a conversion strategy of 'error if encountering unconvertible
-;; characters).
+;; (Latin-1).  Exceptions from conversion errors should not arise with
+;; iso-8859-1 encoding, although strings may not necessarily have the
+;; desired meaning for the program concerned if the input encoding is
+;; in fact different.  From version 0.7, this procedure uses the
+;; conversion strategy for 'port' (which defaults at program start-up
+;; to 'substitute); version 0.6 instead always used a conversion
+;; strategy of 'error if encountering unconvertible characters).
 ;;
 ;; From version 0.6, this procedure may be used with an end-of-line
 ;; representation of either a line-feed (\n) or a carriage-return and
@@ -1823,40 +1859,46 @@
 			   (lambda (status)
 			     (if (eq? status 'excpt)
 				 #f
-				 (let next ()
-				   (let ((u8
-					  (catch 'system-error
-					    (lambda ()
-					      (get-u8 port))
-					    (lambda args
-					      (if (or (= EAGAIN (system-error-errno args))
-						      (and (defined? 'EWOULDBLOCK) 
-							   (= EWOULDBLOCK (system-error-errno args))))
-						  'more
-						  (apply throw args))))))
-				     (cond
-				      ((eq? u8 'more)
-				       'more)
-				      ((eof-object? u8)
-				       (if (= text-len 0)
-					   u8
+				 (catch #t ;; in case of string conversion errors
+				   (lambda ()
+				     (let next ()
+				       (let ((u8
+					      (catch 'system-error
+						(lambda ()
+						  (get-u8 port))
+						(lambda args
+						  (if (or (= EAGAIN (system-error-errno args))
+							  (and (defined? 'EWOULDBLOCK) 
+							       (= EWOULDBLOCK (system-error-errno args))))
+						      'more
+						      args)))))
+					 (cond
+					  ((eq? u8 'more)
+					   'more)
+					  ((list? u8)
+					   u8)
+					  ((eof-object? u8)
+					   (if (= text-len 0)
+					       u8
+					       (let ((line (make-outstring)))
+						 (reset)
+						 line)))
+					  ;; just swallow a DOS-style CR character
+					  ((= u8 (char->integer #\return))
+					   (if (char-ready? port)
+					       (next)
+					       'more))
+					  ((= u8 (char->integer #\newline))
 					   (let ((line (make-outstring)))
 					     (reset)
-					     line)))
-				      ;; just swallow a DOS-style CR character
-				      ((= u8 (char->integer #\return))
-				       (if (char-ready? port)
-					   (next)
-					   'more))
-				      ((= u8 (char->integer #\newline))
-				       (let ((line (make-outstring)))
-					 (reset)
-					 line))
-				      (else
-				       (append-byte! u8)
-				       (if (char-ready? port)
-					   (next)
-					   'more)))))))
+					     line))
+					  (else
+					   (append-byte! u8)
+					   (if (char-ready? port)
+					       (next)
+					       'more))))))
+				   (lambda args
+				     args))))
 			   loop))
      ;; exceptions thrown from the remainder of this procedure (and in
      ;; particular from 'proc') will in the first instance be thrown
@@ -1872,6 +1914,8 @@
 		       (cond
 			((eq? res 'more)
 			 (next (await)))
+			((list? res)
+			 (apply throw res))
 			((or (eof-object? res)
 			     (not res))
 			 res)
@@ -1921,9 +1965,16 @@
 ;;
 ;; Exceptions may propagate out of this procedure if they arise while
 ;; setting up (that is, before the first call to 'await' is made),
-;; which shouldn't happen unless memory is exhausted.  Subsequent
-;; exceptions (say, because of port errors) will propagate out of
-;; event-loop-run!.
+;; which shouldn't happen unless memory is exhausted.  With versions
+;; of this library before 0.13, any exceptions because of read errors
+;; would propagate out of event-loop-run! and could not be caught
+;; locally.  Having read errors interfering with anything using the
+;; event loop in this way was not a good approach, so from version
+;; 0.13 of this library all read exceptions will propagate in the
+;; first instance out of this procedure so that they may be caught
+;; locally, say by putting a catch expression around the call to this
+;; procedure, and only out of event-loop-run! if not caught in that
+;; way.
 ;;
 ;; This procedure is first available in version 0.11 of this library.
 (define await-getblock!
@@ -1948,10 +1999,12 @@
 						      (and (defined? 'EWOULDBLOCK) 
 							   (= EWOULDBLOCK (system-error-errno args))))
 						  'more
-						  (apply throw args))))))
+						  args)))))
 				     (cond
 				      ((eq? u8 'more)
 				       (cons 'more #f))
+				      ((list? u8)
+				       (cons u8 #f))
 				      ((eof-object? u8)
 				       (if (= index 0)
 					   (cons u8 #f)
@@ -1966,11 +2019,15 @@
 					       (cons 'more #f)))))))))
 			   loop))
      (let next ((res (await)))
-       (if (eq? (car res) 'more)
-	   (next (await))
-	   (begin
-	     (event-loop-remove-read-watch! port loop)
-	     res))))))
+       (cond
+	((eq? (car res) 'more)
+	 (next (await)))
+	((list? (car res))
+	 (event-loop-remove-read-watch! port loop)
+	 (apply throw (car res)))
+	(else
+	 (event-loop-remove-read-watch! port loop)
+	 res))))))
 
 ;; This is a convenience procedure whose signature is:
 ;;
@@ -2018,10 +2075,17 @@
 ;;
 ;; Exceptions may propagate out of this procedure if they arise while
 ;; setting up (that is, before the first call to 'await' is made),
-;; which shouldn't happen unless memory is exhausted.  Subsequent
-;; exceptions (say, because of port errors) will propagate out of
-;; event-loop-run!.  Exceptions raised by 'proc', if not caught
-;; locally, will also propagate out of event-loop-run!.
+;; which shouldn't happen unless memory is exhausted.  With versions
+;; of this library before 0.13, any exceptions because of read errors
+;; would propagate out of event-loop-run! and could not be caught
+;; locally.  Having read errors interfering with anything using the
+;; event loop in this way was not a good approach, so from version
+;; 0.13 of this library all read exceptions will propagate in the
+;; first instance out of this procedure so that they may be caught
+;; locally, say by putting a catch expression around the call to this
+;; procedure, and only out of event-loop-run! if not caught in that
+;; way.  Exceptions raised by 'proc', if not caught locally, will also
+;; propagate out of event-loop-run!.
 ;;
 ;; This procedure is first available in version 0.11 of this library.
 (define await-geteveryblock!
@@ -2046,10 +2110,12 @@
 						      (and (defined? 'EWOULDBLOCK) 
 							   (= EWOULDBLOCK (system-error-errno args))))
 						  'more
-						  (apply throw args))))))
+						  args)))))
 				     (cond
 				      ((eq? u8 'more)
 				       (cons 'more #f))
+				      ((list? u8)
+				       (cons u8 #f))
 				      ((eof-object? u8)
 				       (if (= index 0)
 					   (cons u8 #f)
@@ -2083,6 +2149,8 @@
 		    (cond
 		     ((eq? val 'more)
 		      (next (await)))
+		     ((list? val)
+		      (apply throw val))
 		     ((or (eof-object? val)
 			  (not val))
 		      val)
@@ -2149,10 +2217,17 @@
 ;;
 ;; Exceptions may propagate out of this procedure if they arise while
 ;; setting up (that is, before the first call to 'await' is made),
-;; which shouldn't happen unless memory is exhausted.  Subsequent
-;; exceptions (say, because of port errors) will propagate out of
-;; event-loop-run!.  Exceptions raised by 'proc', if not caught
-;; locally, will also propagate out of event-loop-run!.
+;; which shouldn't happen unless memory is exhausted.  With versions
+;; of this library before 0.13, any exceptions because of read errors
+;; would propagate out of event-loop-run! and could not be caught
+;; locally.  Having read errors interfering with anything using the
+;; event loop in this way was not a good approach, so from version
+;; 0.13 of this library all read exceptions will propagate in the
+;; first instance out of this procedure so that they may be caught
+;; locally, say by putting a catch expression around the call to this
+;; procedure, and only out of event-loop-run! if not caught in that
+;; way.  Exceptions raised by 'proc', if not caught locally, will also
+;; propagate out of event-loop-run!.
 ;;
 ;; This procedure is first available in version 0.11 of this library.
 (define await-getsomeblocks!
@@ -2177,10 +2252,12 @@
 						      (and (defined? 'EWOULDBLOCK) 
 							   (= EWOULDBLOCK (system-error-errno args))))
 						  'more
-						  (apply throw args))))))
+						  args)))))
 				     (cond
 				      ((eq? u8 'more)
 				       (cons 'more #f))
+				      ((list? u8)
+				       (cons u8 #f))
 				      ((eof-object? u8)
 				       (if (= index 0)
 					   (cons u8 #f)
@@ -2214,6 +2291,8 @@
 		    (cond
 		     ((eq? val 'more)
 		      (next (await)))
+		     ((list? val)
+		      (apply throw val))
 		     ((or (eof-object? val)
 			  (not val))
 		      val)
