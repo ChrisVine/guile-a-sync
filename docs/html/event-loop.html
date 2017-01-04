@@ -744,9 +744,9 @@ namely the value yielded by the generator.  Each time &rsquo;proc&rsquo; runs it
 will do so as a separate event in the event loop and so be
 multi-plexed with other events.
 </p>
-<p>When &rsquo;proc&rsquo; executes, this procedure will have released &rsquo;await&rsquo; and
-&rsquo;resume&rsquo;, so they may be used by &rsquo;proc&rsquo; to initiate other asynchronous
-operations sequentially.
+<p>When &rsquo;proc&rsquo; executes, &rsquo;await&rsquo; and &rsquo;resume&rsquo; will still be in use, so
+they may not be used by &rsquo;proc&rsquo; to initiate other asynchronous
+operations.
 </p>
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the event loop runs.
@@ -1085,9 +1085,9 @@ happening, this procedure will end and return an end-of-file object or
 loop passed in as an argument, or if none is passed (or #f is passed),
 on the default event loop.
 </p>
-<p>When &rsquo;proc&rsquo; executes, this procedure will have released &rsquo;await&rsquo; and
-&rsquo;resume&rsquo;, so they may be used by &rsquo;proc&rsquo; to initiate other asynchronous
-operations sequentially.
+<p>When &rsquo;proc&rsquo; executes, &rsquo;await&rsquo; and &rsquo;resume&rsquo; will still be in use, so
+they may not be used by &rsquo;proc&rsquo; to initiate other asynchronous
+operations.
 </p>
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the event loop runs.
@@ -1180,9 +1180,9 @@ continuation will be returned.
 loop passed in as an argument, or if none is passed (or #f is passed),
 on the default event loop.
 </p>
-<p>When &rsquo;proc&rsquo; executes, this procedure will have released &rsquo;await&rsquo; and
-&rsquo;resume&rsquo;, so they may be used by &rsquo;proc&rsquo; to initiate other asynchronous
-operations sequentially.
+<p>When &rsquo;proc&rsquo; executes, &rsquo;await&rsquo; and &rsquo;resume&rsquo; will still be in use, so
+they may not be used by &rsquo;proc&rsquo; to initiate other asynchronous
+operations.
 </p>
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the event loop runs.
@@ -1331,9 +1331,9 @@ after &rsquo;proc&rsquo; has returned, it should store it by copying it.
 loop passed in as an argument, or if none is passed (or #f is passed),
 on the default event loop.
 </p>
-<p>When &rsquo;proc&rsquo; executes, this procedure will have released &rsquo;await&rsquo; and
-&rsquo;resume&rsquo;, so they may be used by &rsquo;proc&rsquo; to initiate other asynchronous
-operations sequentially.
+<p>When &rsquo;proc&rsquo; executes, &rsquo;await&rsquo; and &rsquo;resume&rsquo; will still be in use, so
+they may not be used by &rsquo;proc&rsquo; to initiate other asynchronous
+operations.
 </p>
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the event loop runs.
@@ -1403,9 +1403,9 @@ after &rsquo;proc&rsquo; has returned, it should store it by copying it.
 loop passed in as an argument, or if none is passed (or #f is passed),
 on the default event loop.
 </p>
-<p>When &rsquo;proc&rsquo; executes, this procedure will have released &rsquo;await&rsquo; and
-&rsquo;resume&rsquo;, so they may be used by &rsquo;proc&rsquo; to initiate other asynchronous
-operations sequentially.
+<p>When &rsquo;proc&rsquo; executes, &rsquo;await&rsquo; and &rsquo;resume&rsquo; will still be in use, so
+they may not be used by &rsquo;proc&rsquo; to initiate other asynchronous
+operations.
 </p>
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the event loop runs.

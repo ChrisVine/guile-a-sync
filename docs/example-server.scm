@@ -50,16 +50,17 @@
 
 (define (handle-conversation conn-sock)
   (a-sync (lambda (await resume)
-	    (await-getsomelines! await resume conn-sock
-				 (lambda (line k)
-				   (if (not (string=? line ""))
-				       (await-put-string! await resume conn-sock (string-append "echo: " line "\n"))
-				       (k #f))))
-	    (shutdown conn-sock 2)
-	    (close-port conn-sock)
-	    (set! count (- count 1))
-	    (when (zero? count)
-	      (event-loop-quit!)))))
+	    (let next ((line (await-getline! await resume conn-sock)))
+	      (if (not (string=? line ""))
+		  (begin
+		    (await-put-string! await resume conn-sock (string-append "echo: " line "\n"))
+		    (next (await-getline! await resume conn-sock)))
+		  (begin
+		    (shutdown conn-sock 2)
+		    (close-port conn-sock)
+		    (set! count (- count 1))
+		    (when (zero? count)
+		      (event-loop-quit!))))))))
 
 (define (start-server)
   (a-sync (lambda (await resume)
