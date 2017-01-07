@@ -472,11 +472,11 @@
     ;; of a fully filled pipe on closing
     (catch 'system-error
       (lambda ()
-	(close-port (_event-in-get el))
 	(close-port (_event-out-get el)))
       (lambda args
 	(unless (= EAGAIN (system-error-errno args))
 	  (apply throw args))))
+    (close-port (_event-in-get el))
       
     (let* ((event-pipe (pipe))
 	   (in (car event-pipe))
