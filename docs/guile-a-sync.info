@@ -83,7 +83,16 @@ thread, the event-loop thread), but at present it is messy.  Instead of
 starting two intercommunicating "pseudo-threads", the preferred method
 of achieving a similar result is to use generators (see the
 await-generator!  procedure in the *note (a-sync event-loop): event
-loop. module).
+loop. module).  However, one interesting feature of these
+"pseudo-threads" is that where one 'a-sync' or 'compose-a-sync' block is
+waiting on a read or write watch (including in the await-get*,
+await-put*, await-connect!  or await-accept!  procedures), another
+a-sync block running on the same event loop can cause execution of the
+waiting block to come to an end by removing the watch using
+event-loop-remove-read-watch!  or event-loop-remove-write-watch!, as the
+case may be (and another native OS thread can do this by posting an
+event to the event loop which does the same).  An example is in the
+example-server.scm file in the docs directory.
 
    Apart from these "pseudo-threads", true parallelism is possible using
 native OS threads, with the await-task-in-thread!,
@@ -3065,11 +3074,11 @@ coroutines. module.
 Tag Table:
 Node: Top85
 Node: overview1240
-Node: coroutines4178
-Node: event loop22274
-Node: sockets107161
-Node: monotonic time110349
-Node: gnome glib111780
-Node: compose151878
+Node: coroutines4811
+Node: event loop22907
+Node: sockets107794
+Node: monotonic time110982
+Node: gnome glib112413
+Node: compose152511
 
 End Tag Table
