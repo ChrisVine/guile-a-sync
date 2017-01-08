@@ -78,5 +78,4 @@ static SCM c_write(SCM fd, SCM bv, SCM begin, SCM count) {
 
 void init_a_sync_c_write(void* unused) {
   scm_c_define_gsubr("c-write", 4, 0, 0, c_write);
-  scm_c_export("c-write", NULL);
 }
