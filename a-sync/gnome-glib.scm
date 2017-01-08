@@ -63,9 +63,11 @@
 	    await-glib-put-string))
 
 ;; We need to import the definition of the c-write procedure, as
-;; provided by unix_write.c. 
-(define c-write #f) ;; stop bogus unbound variable warnings on compilation
-(load-extension "libguile-a-sync-0" "init_a_sync_c_write")
+;; provided by unix_write.c.  Using eval-when ensures that definitions
+;; are seen at compile time as well as at run time, to avoid absent
+;; definition warnings when compiling
+(eval-when (load compile eval)
+	   (load-extension "libguile-a-sync-0" "init_a_sync_c_write"))
 
 ;; This is a convenience procedure which will run 'thunk' in its own
 ;; thread, and then post an event to the default glib main loop when
