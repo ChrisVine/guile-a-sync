@@ -62,7 +62,7 @@
 
 (define (await-send-get-request await resume host path sock)
   (await-put-string! await resume sock
-  		     (string-append "GET " path " HTTP/1.1\r\nHost: "host"\r\n\r\n")))
+  		     (string-append "GET " path " HTTP/1.1\r\nHost: " host "\r\nConnection: close\r\n\r\n")))
 
 (set-default-event-loop!)
 (sigaction SIGPIPE SIG_IGN) ;; we want EPIPE, not SIGPIPE
