@@ -27,6 +27,7 @@ Modules
 * monotonic time:: (a-sync monotonic-time) module - enables monotonic time to be used for timeouts
 * gnome glib::     (a-sync gnome-glib) module - provides some convenience await procedures for the glib main loop
 * compose::        (a-sync compose) module - provides the compose-a-sync macro interface for the a-sync coroutine
+* meeting::        (a-sync meeting) module - provides for synchronization between two a-sync or compose-a-sync blocks 
 @end menu
 
 @include overview.texi
@@ -36,5 +37,6 @@ Modules
 @include monotonic-time.texi
 @include gnome-glib.texi
 @include compose.texi
+@include meeting.texi
 
 @bye

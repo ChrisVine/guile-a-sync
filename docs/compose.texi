@@ -1,4 +1,4 @@
-@node compose,,gnome glib,Top
+@node compose,meeting,gnome glib,Top
 
 This (a-sync compose) module provides a compose-a-sync macro interface
 for the a-sync procedure provided by the @ref{coroutines,,(a-sync
