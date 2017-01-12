@@ -3036,6 +3036,18 @@ coroutines. module.
           			 (g-main-loop-quit main-loop))))
           (g-main-loop-run main-loop)
 
+     In addition, the meeting-send and meeting-receive procedures in the
+     (a-sync meeting) module meet the 'compose-a-sync'-capable
+     requirements.  Here is an example using them:
+
+          (set-default-event-loop!) ;; if none has yet been set
+          (define m1 (make-meeting))
+          (compose-a-sync ((datum (meeting-receive m1)))
+          		((no-await (display datum)(newline))))
+          (compose-a-sync ()
+          		(meeting-send m1 100))
+          (event-loop-run!)
+
      Each block of code within a compose-a-sync block will run
      independently of (and concurrently with) code in other
      compose-a-sync blocks.  Asynchronous operations are only serialized
@@ -3112,10 +3124,11 @@ meeting object has not been closed).
 takes place.  Once one of the "pseudo-threads" leaves the meeting upon
 meeting-receive or meeting-send (or both) returning, all subsequent
 events are unsynchronized until another datum exchange is arranged.
-This means that where "pseudo-threads" share access to other objects,
-one "pseudo-thread" is guaranteed to see a value of the shared object
-which is not earlier than the value it held at the moment of datum
-exchange, but it may or may not see a later value.
+This means that where two "pseudo-threads" share access to objects other
+than the datum exchanged and they might be mutated, one "pseudo-thread"
+is guaranteed to see a value of the unexchanged shared objects which is
+not earlier than the value they held at the moment of datum exchange,
+but it may or may not see a later value.
 
    Here is an example of the use of a meeting object:
 
@@ -3145,7 +3158,7 @@ exchange, but it may or may not see a later value.
      objects on which two a-sync or compose-a-sync blocks running on the
      same event loop can synchronize by one passing a datum to the
      other.  The 'loop' argument specifies the event loop (as
-     constructed by make-event-loop in the (a-sync event-loop module))
+     constructed by make-event-loop in the (a-sync event-loop) module)
      with respect to which the meeting will be held: it is an error if
      the meeting-send or meeting-receive procedures are passed a
      different event loop as an argument.  The 'loop' argument is
@@ -3264,6 +3277,6 @@ Node: sockets107582
 Node: monotonic time110770
 Node: gnome glib112201
 Node: compose152299
-Node: meeting158906
+Node: meeting159396
 
 End Tag Table
