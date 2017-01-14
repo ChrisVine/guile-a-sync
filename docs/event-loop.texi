@@ -20,6 +20,9 @@ particular, event-post! allows worker threads to post an event to an
 event loop, say with the result of a computation, so that the event
 callback will execute in the event loop thread.
 
+@ref{meeting,,(a-sync meeting)} provides synchronization facilities
+for event loops constructed under this module.
+
 The file watches provided by this module use guile's wrapper for the
 select() system call.  This has two consequences.  First, in linux
 select() applied to sockets can give rise to spurious wake-ups, which
