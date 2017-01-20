@@ -42,8 +42,10 @@
 ;; same thread as that in which the event loop runs.
 ;;
 ;; Exceptions may propagate out of this procedure if they arise from
-;; socket errors when first calling the 'accept' procedure.  Subsequent
-;; exceptions will propagate out of event-loop-run!.
+;; socket errors when first calling the 'accept' procedure.
+;; Subsequent exceptions will propagate out of event-loop-run! if not
+;; caught locally (say by putting a catch expression around the call
+;; to this procedure).
 ;;
 ;; This procedure is first available in version 0.12 of this library.
 (define await-accept!
@@ -97,8 +99,10 @@
 ;; same thread as that in which the event loop runs.
 ;;
 ;; Exceptions may propagate out of this procedure if they arise from
-;; socket errors when calling the 'connect' procedure.  In the absence
-;; of memory exhaustion this procedure should not otherwise throw.
+;; socket errors when first calling the 'connect' procedure.
+;; Subsequent exceptions will propagate out of event-loop-run! if not
+;; caught locally (say by putting a catch expression around the call
+;; to this procedure).
 ;;
 ;; This procedure is first available in version 0.12 of this library.
 (define (await-connect! await resume next . rest)

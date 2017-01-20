@@ -2102,7 +2102,9 @@ procedures for sockets.
 
      Exceptions may propagate out of this procedure if they arise from
      socket errors when first calling the 'accept' procedure.
-     Subsequent exceptions will propagate out of event-loop-run!.
+     Subsequent exceptions will propagate out of event-loop-run!  if not
+     caught locally (say by putting a catch expression around the call
+     to this procedure).
 
      This procedure is first available in version 0.12 of this library.
 
@@ -2131,8 +2133,10 @@ procedures for sockets.
      same thread as that in which the event loop runs.
 
      Exceptions may propagate out of this procedure if they arise from
-     socket errors when calling the 'connect' procedure.  In the absence
-     of memory exhaustion this procedure should not otherwise throw.
+     socket errors when first calling the 'connect' procedure.
+     Subsequent exceptions will propagate out of event-loop-run!  if not
+     caught locally (say by putting a catch expression around the call
+     to this procedure).
 
      This procedure is first available in version 0.12 of this library.
 
@@ -3302,9 +3306,9 @@ Node: overview1358
 Node: coroutines4668
 Node: event loop22764
 Node: sockets107702
-Node: monotonic time110890
-Node: gnome glib112321
-Node: compose152419
-Node: meeting159516
+Node: monotonic time111083
+Node: gnome glib112514
+Node: compose152612
+Node: meeting159709
 
 End Tag Table

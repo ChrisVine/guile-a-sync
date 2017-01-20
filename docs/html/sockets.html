@@ -86,7 +86,8 @@ thread as that in which the event loop runs.
 </p>
 <p>Exceptions may propagate out of this procedure if they arise from
 socket errors when first calling the &rsquo;accept&rsquo; procedure.  Subsequent
-exceptions will propagate out of event-loop-run!.
+exceptions will propagate out of event-loop-run! if not caught locally
+(say by putting a catch expression around the call to this procedure).
 </p>
 <p>This procedure is first available in version 0.12 of this library.
 </p></dd></dl>
@@ -118,8 +119,9 @@ on the default event loop.
 thread as that in which the event loop runs.
 </p>
 <p>Exceptions may propagate out of this procedure if they arise from
-socket errors when calling the &rsquo;connect&rsquo; procedure.  In the absence of
-memory exhaustion this procedure should not otherwise throw.
+socket errors when first calling the &rsquo;connect&rsquo; procedure.  Subsequent
+exceptions will propagate out of event-loop-run! if not caught locally
+(say by putting a catch expression around the call to this procedure).
 </p>
 <p>This procedure is first available in version 0.12 of this library.
 </p></dd></dl>
