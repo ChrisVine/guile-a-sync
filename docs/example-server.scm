@@ -69,6 +69,7 @@
 (define (start-server)
   (a-sync (lambda (await resume)
 	    (set! server-sock (socket PF_INET6 SOCK_STREAM 0))
+	    (setsockopt server-sock SOL_SOCKET SO_REUSEADDR 1)
 	    ;; make socket non-blocking
 	    (fcntl server-sock F_SETFL (logior O_NONBLOCK
 					(fcntl server-sock F_GETFL)))
