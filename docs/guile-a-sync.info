@@ -3254,7 +3254,7 @@ object.
           	      (display (meeting-receive await resume m1))
           	      (newline)
           	      (next (1+ count))))))
-          (event-loop-run!))
+          (event-loop-run!)
 
      In addition, with version 0.15 of this library, only a single
      meeting object could be passed to this procedure.  From version
@@ -3276,7 +3276,7 @@ object.
           (a-sync (lambda (await resume)
           	  (simple-format #t "meeting-send says: ~a~%"
           			 (meeting-receive await resume m2))))
-          (event-loop-run!))
+          (event-loop-run!)
 
      Once a datum exchange has taken place, the meeting object(s) can be
      reused for making another exchange (provided the meeting objects
@@ -3341,7 +3341,7 @@ object.
           	    (when (< count 2)
           	      (meeting-send await resume m1 count)
           	      (next (1+ count))))))
-          (event-loop-run!))
+          (event-loop-run!)
 
      In addition, with version 0.15 of this library, only a single
      meeting object could be passed to this procedure.  From version
@@ -3366,7 +3366,7 @@ object.
           	      (simple-format #t "Message received from ~a~%"
           			     (meeting-receive await resume m1 m2))
           	      (next (1+ count))))))
-          (event-loop-run!))
+          (event-loop-run!)
 
      Once a datum exchange has taken place, the meeting object(s) can be
      reused for making another exchange (provided the meeting objects
