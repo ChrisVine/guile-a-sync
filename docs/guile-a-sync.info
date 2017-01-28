@@ -25,7 +25,7 @@ Modules
 * monotonic time:: (a-sync monotonic-time) module - enables monotonic time to be used for timeouts
 * gnome glib::     (a-sync gnome-glib) module - provides some convenience await procedures for the glib main loop
 * compose::        (a-sync compose) module - provides the compose-a-sync macro interface for the a-sync coroutine
-* meeting::        (a-sync meeting) module - provides for synchronization between two a-sync or compose-a-sync blocks
+* meeting::        (a-sync meeting) module - provides for synchronization between a-sync or compose-a-sync blocks
 
 
 File: guile-a-sync.info,  Node: overview,  Next: coroutines,  Prev: Top
@@ -3393,13 +3393,13 @@ object.
 
 Tag Table:
 Node: Top85
-Node: overview1358
-Node: coroutines4669
-Node: event loop22765
-Node: sockets107703
-Node: monotonic time111084
-Node: gnome glib112515
-Node: compose152613
-Node: meeting159710
+Node: overview1354
+Node: coroutines4665
+Node: event loop22761
+Node: sockets107699
+Node: monotonic time111080
+Node: gnome glib112511
+Node: compose152609
+Node: meeting159706
 
 End Tag Table
