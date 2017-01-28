@@ -75,9 +75,9 @@ timeout expires):
        (event-loop-run! loop)
        (display ret)(newline))
 
-   Two "pseudo-threads" (that is two 'a-sync' or 'compose-a-sync'
-blocks) running on the same event loop can intercommunicate by holding
-meetings to exchange a datum (see *note (a-sync meeting): meeting.).  A
+   "Pseudo-threads" (that is 'a-sync' or 'compose-a-sync' blocks)
+running on the same event loop can intercommunicate by holding meetings
+to exchange a datum (see *note (a-sync meeting): meeting.).  A somewhat
 similar result can also be achieved using generators (see the
 await-generator!  procedure in the *note (a-sync event-loop): event
 loop. module).
@@ -3168,15 +3168,14 @@ object.
 
  -- Scheme Procedure: make-meeting [loop]
      This procedure makes and returns a meeting object.  Meetings are
-     objects on which two a-sync or compose-a-sync blocks running on the
-     same event loop can synchronize by one passing a datum to the
-     other.  The 'loop' argument specifies the event loop (as
-     constructed by make-event-loop in the (a-sync event-loop) module)
-     with respect to which the meeting will be held: it is an error if
-     the meeting-send or meeting-receive procedures are passed a
-     different event loop as an argument.  The 'loop' argument is
-     optional - if none is passed, or #f is passed, then the default
-     event loop will be chosen.
+     objects on which a-sync or compose-a-sync blocks running on the
+     same event loop can synchronize by one passing a datum to another.
+     The 'loop' argument specifies the event loop (as constructed by
+     make-event-loop in the (a-sync event-loop) module) with respect to
+     which the meeting will be held: it is an error if the meeting-send
+     or meeting-receive procedures are passed a different event loop as
+     an argument.  The 'loop' argument is optional - if none is passed,
+     or #f is passed, then the default event loop will be chosen.
 
      Strictly speaking this procedure can be called in any native OS
      thread, but since it carries out no synchronization of native
@@ -3395,12 +3394,12 @@ object.
 Tag Table:
 Node: Top85
 Node: overview1358
-Node: coroutines4668
-Node: event loop22764
-Node: sockets107702
-Node: monotonic time111083
-Node: gnome glib112514
-Node: compose152612
-Node: meeting159709
+Node: coroutines4669
+Node: event loop22765
+Node: sockets107703
+Node: monotonic time111084
+Node: gnome glib112515
+Node: compose152613
+Node: meeting159710
 
 End Tag Table

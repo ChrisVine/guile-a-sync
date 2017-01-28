@@ -82,9 +82,9 @@ The (a-sync meeting) module provides the following procedures:
 
 @deffn {Scheme Procedure} make-meeting [loop]
 This procedure makes and returns a meeting object.  Meetings are
-objects on which two a-sync or compose-a-sync blocks running on the
-same event loop can synchronize by one passing a datum to the other.
-The 'loop' argument specifies the event loop (as constructed by
+objects on which a-sync or compose-a-sync blocks running on the same
+event loop can synchronize by one passing a datum to another.  The
+'loop' argument specifies the event loop (as constructed by
 make-event-loop in the (a-sync event-loop) module) with respect to
 which the meeting will be held: it is an error if the meeting-send or
 meeting-receive procedures are passed a different event loop as an
