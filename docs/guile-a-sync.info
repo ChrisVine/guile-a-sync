@@ -91,8 +91,7 @@ event loop can cause execution of the waiting block to come to an end by
 removing the watch using event-loop-remove-read-watch!  or
 event-loop-remove-write-watch!, as the case may be (and another native
 OS thread can do this by posting an event to the event loop which does
-the same).  An example is in the example-server.scm file in the docs
-directory.
+the same).
 
    Apart from these "pseudo-threads", true parallelism is possible using
 native OS threads, with the await-task-in-thread!,
@@ -3747,13 +3746,13 @@ object.
 Tag Table:
 Node: Top85
 Node: overview1453
-Node: coroutines4825
-Node: event loop23149
-Node: sockets107857
-Node: thread pool111235
-Node: monotonic time129468
-Node: gnome glib130903
-Node: compose171001
-Node: meeting178210
+Node: coroutines4756
+Node: event loop23080
+Node: sockets107788
+Node: thread pool111166
+Node: monotonic time129399
+Node: gnome glib130834
+Node: compose170932
+Node: meeting178141
 
 End Tag Table
