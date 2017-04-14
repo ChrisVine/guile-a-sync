@@ -70,8 +70,9 @@
 (a-sync
  (lambda (await resume)
    (let ((sock (socket PF_INET SOCK_STREAM 0))
-	 ;; getaddrinfo can block, so call it up with either
-	 ;; await-task-in-thread! or await-task-in-event-loop!
+	 ;; getaddrinfo can block, so call it up with
+	 ;; await-task-in-thread!, await-task-in-event-loop! or
+	 ;; await-task-in-thread-pool!
 	 (addr (await-task-in-thread! await resume
 				      (lambda ()
 					(addrinfo:addr (car (getaddrinfo check-ip "http")))))))

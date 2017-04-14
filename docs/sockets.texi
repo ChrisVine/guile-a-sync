@@ -1,4 +1,4 @@
-@node sockets,monotonic time,event loop,Top
+@node sockets,thread pool,event loop,Top
 
 This (a-sync compose) module provides asynchronous accept and connect
 procedures for sockets.

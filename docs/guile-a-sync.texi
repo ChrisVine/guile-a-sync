@@ -24,6 +24,7 @@ Modules
 * coroutines::     (a-sync coroutines) module - provides coroutines for await semantics on asynchronous events
 * event loop::     (a-sync event-loop) module - provides an event loop for asynchronous events, with asynchonous procedures
 * sockets::        (a-sync sockets) module - provides asychonous procedures for sockets
+* thread pool::    (a-sync thread-pool) module - provides a thread pool with asychonous procedures
 * monotonic time:: (a-sync monotonic-time) module - enables monotonic time to be used for timeouts
 * gnome glib::     (a-sync gnome-glib) module - provides some convenience await procedures for the glib main loop
 * compose::        (a-sync compose) module - provides the compose-a-sync macro interface for the a-sync coroutine
@@ -34,6 +35,7 @@ Modules
 @include coroutines.texi
 @include event-loop.texi
 @include sockets.texi
+@include thread-pool.texi
 @include monotonic-time.texi
 @include gnome-glib.texi
 @include compose.texi

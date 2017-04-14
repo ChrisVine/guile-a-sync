@@ -1,4 +1,4 @@
-@node monotonic time,gnome glib,sockets,Top
+@node monotonic time,gnome glib,thread pool,Top
 
 The (a-sync monotonic-time) module provides two procedures.  It is
 loaded by the @ref{event loop,,(a-sync event-loop)} module.

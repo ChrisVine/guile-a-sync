@@ -130,8 +130,8 @@
 ;;
 ;; This procedure will throw an exception if the system is unable to
 ;; start the number of threads given as the #:min-threads argument.
-;; In such a case, any threads which have in fact been started will be
-;; killed.
+;; In such a case, any threads which have in fact started in the pool
+;; will be killed.
 ;;
 ;; This procedure is first available in version 0.18 of this library.
 (define* (make-thread-pool #:key max-threads min-threads idle non-blocking)
@@ -250,7 +250,7 @@
 ;; although it accesses the task number field outside the pool mutex
 ;; and therefore with relaxed memory ordering.  That enables this
 ;; procedure to be applied more efficiently for rate limiting purposes
-;; but it might at any one time be marginally out of date.
+;; but the result might at any one time be marginally out of date.
 ;;
 ;; This procedure is first available in version 0.18 of this library.
 (define (thread-pool-get-num-tasks pool)
@@ -284,16 +284,16 @@
 
 ;; This procedure will increase, or if 'delta' is negative reduce, the
 ;; maximum number of threads which the thread pool object will
-;; currently run by the value of 'delta'. The main purpose of this is
+;; currently run by the value of 'delta'.  The main purpose of this is
 ;; to enable a task to increment the maximum thread number where it is
 ;; about to enter a call which may block for some time, with a view to
 ;; decrementing it later when it has finished making blocking calls,
-;; so as to enable another thread to keep a core active. If 'delta' is
-;; negative and results in a max_threads value of less than the
+;; so as to enable another thread to keep a core active.  If 'delta'
+;; is negative and results in a max_threads value of less than the
 ;; current number of running threads, the number of threads actually
 ;; running will only be reduced as tasks complete, or as idle timeouts
-;; expire. This procedure does nothing if thread-pool-stop! has
-;; previously been called. This procedure is thread safe - any thread
+;; expire.  This procedure does nothing if thread-pool-stop! has
+;; previously been called.  This procedure is thread safe - any thread
 ;; may call it.
 ;;
 ;; If 'delta' is positive and tasks are currently queued for
@@ -381,7 +381,7 @@
 ;; number than the minimum and not executing any tasks will remain in
 ;; existence waiting for new tasks.  This will only have effect for
 ;; threads in the pool which begin waiting for new tasks after this
-;; method is called
+;; procedure is called.
 ;;
 ;; This procedure is thread safe (any thread may call it).
 ;;
@@ -431,17 +431,17 @@
 	      ((= (num-threads-get pool) 0))
 	    (wait-condition-variable (condvar-get pool) mutex)))))))
 
-;; This procedure adds a new task to the thread pool. If one or more
+;; This procedure adds a new task to the thread pool.  If one or more
 ;; threads in the pool are currently blocking and waiting for a task,
 ;; then the task will begin executing immediately in one of the
 ;; threads.  If not, and the the number of threads running in the pool
 ;; is less than the value returned by thread-pool-get-max-threads, a
 ;; new thread will start and the task will execute immediately in the
-;; new thread. Otherwise, the task will be queued for execution as
-;; soon as a thread becomes available. Tasks will be executed in the
+;; new thread.  Otherwise, the task will be queued for execution as
+;; soon as a thread becomes available.  Tasks will be executed in the
 ;; order in which they are added to the thread pool object.  This
-;; method is thread safe (any thread may call it, including any task
-;; running on the thread pool object).
+;; procedure is thread safe (any thread may call it, including any
+;; task running on the thread pool object).
 ;;
 ;; A task may terminate itself prematurely by throwing an 'exit
 ;; exception.  An optional handler procedure may be passed to

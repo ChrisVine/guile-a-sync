@@ -187,15 +187,19 @@
 ;; a-sync-read-watch!, await-getline!, await-geteveryline!,
 ;; await-getsomelines!, await-getblock!, await-geteveryblock!,
 ;; await-getsomeblocks!, a-sync-write-watch!, await-put-bytevector!,
-;; and await-put-string! convenience procedures which will correctly
+;; and await-put-string! convenience procedures, the sockets module
+;; has await-accept! and await-connect! procedures, and the
+;; thread-pool module has await-task-in-thread-pool! and
+;; await-generator-in-thread-pool! procedures, which will correctly
 ;; set this up for you automatically.  If those convenience procedures
 ;; are used, exceptions should always be handled locally in the
 ;; waitable procedure (and if the callback might throw, in the
 ;; callback also) if it is undesirable that uncaught exceptions
 ;; propagate out of event-loop-run!.  In the case of
-;; await-task-in-thread! and await-generator-in-thread!, those
-;; procedures also take an optional handler argument which will handle
-;; any exceptions thrown by the task or generator: otherwise a
+;; await-task-in-thread!, await-task-in-thread-pool!,
+;; await-generator-in-thread! and await-generator-in-thread-pool!,
+;; those procedures also take an optional handler argument which will
+;; handle any exceptions thrown by the task or generator: otherwise a
 ;; throwing thread would terminate the program if not caught.
 ;;
 ;; There can be as many calls to 'await' and asynchronous callbacks in
