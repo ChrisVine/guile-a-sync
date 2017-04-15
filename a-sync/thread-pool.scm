@@ -280,7 +280,7 @@
 ;; This procedure is first available in version 0.18 of this library.
 (define (thread-pool-get-max-threads pool)
   (with-mutex (mutex-get pool)
-    (num-threads-get pool)))
+    (max-threads-get pool)))
 
 ;; This procedure will increase, or if 'delta' is negative reduce, the
 ;; maximum number of threads which the thread pool object will
