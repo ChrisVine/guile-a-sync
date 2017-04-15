@@ -208,27 +208,22 @@
 		(lambda ()
 		  ((car task)))
 		(lambda (key . args)
-		  (cond
-		   ((eq? key 'kill-thread)
-		    ;; we don't decrement 'tasks' here, as adding a
-		    ;; 'kill-thread callback does not increment the
-		    ;; number of tasks
-		    (with-mutex mutex
-		      (num-threads-set! pool (1- (num-threads-get pool)))
-		      (when (and (stopped-get pool)
-				 (blocking-get pool))
-			(broadcast-condition-variable (condvar-get pool)))
-		      (return #f)))
-		   ((eq? key 'exit)
-		    (let ((fail-handler (cdr task)))
-		      (when fail-handler (fail-handler 'exit))))
-		   (else
-		    (let ((fail-handler (cdr task)))
-		      (if fail-handler
-			  (apply fail-handler key args)
-			  (error
-			   (string-append "Exception thrown by thread pool task with no fail-handler: "
-					  (object->string (cons key args))))))))))
+		  (if (eq? key 'kill-thread)
+		      ;; we don't decrement 'tasks' here, as adding a
+		      ;; 'kill-thread callback does not increment the
+		      ;; number of tasks
+		      (with-mutex mutex
+			(num-threads-set! pool (1- (num-threads-get pool)))
+			(when (and (stopped-get pool)
+				   (blocking-get pool))
+			  (broadcast-condition-variable (condvar-get pool)))
+			(return #f))
+		      (let ((fail-handler (cdr task)))
+			(if fail-handler
+			    (apply fail-handler key args)
+			    (error
+			     (string-append "Exception thrown by thread pool task with no fail-handler: "
+					    (object->string (cons key args)))))))))
 	      ;; cater for a case where the maximum number of threads
 	      ;; has been reduced by the user
 	      (with-mutex mutex
@@ -431,27 +426,24 @@
 	      ((= (num-threads-get pool) 0))
 	    (wait-condition-variable (condvar-get pool) mutex)))))))
 
-;; This procedure adds a new task to the thread pool.  If one or more
-;; threads in the pool are currently blocking and waiting for a task,
-;; then the task will begin executing immediately in one of the
-;; threads.  If not, and the the number of threads running in the pool
-;; is less than the value returned by thread-pool-get-max-threads, a
-;; new thread will start and the task will execute immediately in the
-;; new thread.  Otherwise, the task will be queued for execution as
-;; soon as a thread becomes available.  Tasks will be executed in the
-;; order in which they are added to the thread pool object.  This
-;; procedure is thread safe (any thread may call it, including any
-;; task running on the thread pool object).
+;; This procedure adds a new task to the thread pool.  'task' must be
+;; a thunk.  If one or more threads in the pool are currently blocking
+;; and waiting for a task, then the task will begin executing
+;; immediately in one of the threads.  If not, and the the number of
+;; threads running in the pool is less than the value returned by
+;; thread-pool-get-max-threads, a new thread will start and the task
+;; will execute immediately in the new thread.  Otherwise, the task
+;; will be queued for execution as soon as a thread becomes available.
+;; Tasks will be executed in the order in which they are added to the
+;; thread pool object.  This procedure is thread safe (any thread may
+;; call it, including any task running on the thread pool object).
 ;;
-;; A task may terminate itself prematurely by throwing an 'exit
-;; exception.  An optional handler procedure may be passed to
-;; 'fail-handler' which will be invoked if the task throws an
-;; exception, including an 'exit exception.  If a task throws an
-;; exception other than an 'exit exception and no handler procedure is
-;; provided, the program will terminate.  The 'fail-handler' procedure
-;; will be passed an 'exit symbol if an 'exit exception is thrown;
-;; otherwise it will be passed the same arguments as if it were a
-;; guile catch handler.
+;; An optional handler procedure may be passed to 'fail-handler' which
+;; will be invoked if the task throws an exception.  If a task throws
+;; an exception and no handler procedure is provided, the program will
+;; terminate.  The 'fail-handler' procedure will be passed the same
+;; arguments as if it were a guile catch handler (it is implemented
+;; using catch).
 ;;
 ;; If this procedure starts a new thread (see above), it may throw an
 ;; exception if the system is unable to start the thread correctly.
@@ -553,15 +545,11 @@
 ;; If the optional 'handler' argument is provided, then that handler
 ;; will run if 'thunk' throws, and the return value of the handler
 ;; would become the return value of this procedure; otherwise the
-;; program will terminate if an unhandled exception (other than an
-;; 'exit exception) propagates out of 'thunk'.  Note that unlike a
-;; handler passed to the thread-pool-add! procedure, 'handler' will
-;; run in the event loop thread and not in a thread pool thread.
-;; 'handler' will also execute if 'thunk' throws an 'exit exception in
-;; order to terminate the task (see the documentation for the
-;; thread-pool-add! procedure for further information about that
-;; exception).  Exceptions thrown by the handler procedure will
-;; propagate out of event-loop-run! for the 'loop' event loop.
+;; program will terminate if an unhandled exception propagates out of
+;; 'thunk'.  Note that unlike a handler passed to the thread-pool-add!
+;; procedure, 'handler' will run in the event loop thread and not in a
+;; thread pool thread.  Exceptions thrown by the handler procedure
+;; will propagate out of event-loop-run! for the 'loop' event loop.
 ;;
 ;; This procedure calls 'await' and must (like the a-sync procedure)
 ;; be called in the same thread as that in which the 'loop' or default
@@ -638,20 +626,16 @@
 ;;
 ;; If the optional 'handler' argument is provided, then that handler
 ;; will run if 'generator' throws an exception; otherwise the program
-;; will terminate if an unhandled exception (other than an 'exit
-;; exception) propagates out of 'generator'.  Note that unlike a
-;; handler passed to the thread-pool-add! procedure, 'handler' will
-;; run in the event loop thread and not in a thread pool thread.
-;; 'handler' will also execute if 'generator' throws an 'exit
-;; exception in order to terminate itself (see the documentation for
-;; the thread-pool-add! procedure for further information about that
-;; exception).  This procedure will return #f if the generator
-;; completes normally, or 'guile-a-sync-thread-error if the generator
-;; throws an exception and 'handler' is run (the
-;; 'guile-a-sync-thread-error symbol is reserved to the implementation
-;; and should not be yielded by the generator).  Exceptions thrown by
-;; the handler procedure will propagate out of event-loop-run! for the
-;; 'loop' event loop.
+;; will terminate if an unhandled exception propagates out of
+;; 'generator'.  Note that unlike a handler passed to the
+;; thread-pool-add! procedure, 'handler' will run in the event loop
+;; thread and not in a thread pool thread.  This procedure will return
+;; #f if the generator completes normally, or
+;; 'guile-a-sync-thread-error if the generator throws an exception and
+;; 'handler' is run (the 'guile-a-sync-thread-error symbol is reserved
+;; to the implementation and should not be yielded by the generator).
+;; Exceptions thrown by the handler procedure will propagate out of
+;; event-loop-run! for the 'loop' event loop.
 ;;
 ;; This procedure calls 'await' and will return when the generator has
 ;; finished or, if 'handler' is provided, upon the generator raising
