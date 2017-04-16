@@ -2327,7 +2327,9 @@ the already accumulated tasks has reduced.
 
      After this procedure has been called, any attempt to add further
      tasks with the thread-pool-add!  procedure will fail, and that
-     procedure will throw a 'thread-pool-error exception.
+     procedure will throw a 'thread-pool-error exception.  The same
+     exception will be thrown if this procedure is applied to a thread
+     pool to which this procedure has previously been applied.
 
      This procedure is thread safe (any thread may call it) unless the
      non-blocking setting is #f, in which case no task running on the
@@ -3752,9 +3754,9 @@ Node: coroutines4756
 Node: event loop23080
 Node: sockets107788
 Node: thread pool111166
-Node: monotonic time129469
-Node: gnome glib130904
-Node: compose171002
-Node: meeting178211
+Node: monotonic time129613
+Node: gnome glib131048
+Node: compose171146
+Node: meeting178355
 
 End Tag Table
