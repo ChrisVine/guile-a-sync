@@ -34,6 +34,7 @@
 	    thread-pool-set-idle-time!
 	    thread-pool-stop!
 	    thread-pool-add!
+	    with-thread-pool-increment
 	    await-task-in-thread-pool!
 	    await-generator-in-thread-pool!))
 
@@ -294,15 +295,19 @@
 ;; maximum number of threads which the thread pool object will
 ;; currently run by the value of 'delta'.  The main purpose of this is
 ;; to enable a task to increment the maximum thread number where it is
-;; about to enter a call which may block for some time, with a view to
-;; decrementing it later when it has finished making blocking calls,
-;; so as to enable another thread to keep a core active.  If 'delta'
-;; is negative and results in a max_threads value of less than the
-;; current number of running threads, the number of threads actually
-;; running will only be reduced as tasks complete, or as idle timeouts
-;; expire.  This procedure does nothing if thread-pool-stop! has
-;; previously been called.  This procedure is thread safe - any thread
-;; may call it.
+;; about to enter a call which may block (non-asynchronously) for some
+;; time, with a view to decrementing it later when it has finished
+;; making blocking calls, so as to enable another thread to keep a
+;; core active.  A with-thread-pool-increment macro is available which
+;; will do this for you automatically in an exception-safe way (see
+;; the documentation on that macro below).
+;;
+;; If 'delta' is negative and results in a max_threads value of less
+;; than the current number of running threads, the number of threads
+;; actually running will only be reduced as tasks complete, or as idle
+;; timeouts expire.  This procedure does nothing if thread-pool-stop!
+;; has previously been called.  This procedure is thread safe - any
+;; thread may call it.
 ;;
 ;; If 'delta' is positive and tasks are currently queued for
 ;; execution, a new thread or threads will be started for the queued
@@ -538,7 +543,26 @@
 	      ;; roll back if adding the task fails
 	      (num-tasks-set! pool (1- (num-tasks-get pool)))
 	      (apply throw args)))))))
-	    
+
+;; This macro is intended to be called by a task running on a thread
+;; pool which is about to make a blocking (non-asynchronous) call.  It
+;; will increment the max-threads value of 'pool' by 1 (by calling
+;; thread-pool-change-max-threads!) so as to enable a queued task to
+;; keep a core active, and decrement it again when execution of the
+;; body clauses has completed.
+;;
+;; The (i) increment, (ii) execution of body clauses, and (iii)
+;; decrement, form the three branches of a dynamic-wind, so the
+;; decrement automatically occurs if control leaves body execution
+;; because of an exception or other jump.
+;;
+;; This macro is first available in version 0.18 of this library.
+(define-syntax-rule (with-thread-pool-increment pool body0 body1 ...)
+  (let ((p pool))
+    (dynamic-wind
+      (lambda () (thread-pool-change-max-threads! p 1))
+      (lambda () body0 body1 ...)
+      (lambda () (thread-pool-change-max-threads! p -1)))))
 
 ;; This is a convenience procedure whose signature is:
 ;;
