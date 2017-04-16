@@ -39,7 +39,7 @@
   (test-result 0 (thread-pool-get-num-threads pool))
   (test-result 8 (thread-pool-get-max-threads pool))
   (test-result #f (thread-pool-get-non-blocking pool))
-  (test-result 10000 (thread-pool-get-idle-time pool))
+  (test-result 5000 (thread-pool-get-idle-time pool))
   (thread-pool-stop! pool)
   (print-result))
 
@@ -54,10 +54,10 @@
 
   (thread-pool-change-max-threads! pool -1)
   (thread-pool-set-non-blocking! pool #f)
-  (thread-pool-set-idle-time! pool 5000)
+  (thread-pool-set-idle-time! pool 10000)
   (test-result 5 (thread-pool-get-max-threads pool))
   (test-result #f (thread-pool-get-non-blocking pool))
-  (test-result 5000 (thread-pool-get-idle-time pool))
+  (test-result 10000 (thread-pool-get-idle-time pool))
 
   (thread-pool-change-max-threads! pool 3)
   (test-result 8 (thread-pool-get-max-threads pool))

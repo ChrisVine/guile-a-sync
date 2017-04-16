@@ -104,17 +104,30 @@
   (blocking blocking-get blocking-set!)
   (stopped stopped-get stopped-set!))
 
-;; This procedure constructs a thread pool object.  It takes four
-;; optional arguments.  The #:max-thread keyname specifies the maximum
-;; number of threads which will run in the pool, and the default value
-;; is 8.  The #:min-threads keyname specifies the minimum number of
-;; persistent threads which will run in the pool and will not be
-;; subject to an #:idle timeout, and the default value is 0.  It is an
-;; error if #:min-threads is greater than #:max-threads.
+;; This procedure constructs a thread pool object of native OS
+;; threads.  It takes four optional arguments.  The #:max-thread
+;; keyname specifies the maximum number of threads which will run in
+;; the pool, and the default value is 8.  The #:min-threads keyname
+;; specifies the minimum number of persistent threads which will run
+;; in the pool and will not be subject to an #:idle timeout, and the
+;; default value is 0.  It is an error if #:min-threads is greater
+;; than #:max-threads.
+;;
+;; Thread pool objects with a #:min-threads setting of greater than 0
+;; are usually best kept as top level objects, because the minimum
+;; value of threads will keep alive in the pool until
+;; thread-pool-stop! is called.  If such a thread pool is constructed
+;; within a local lexical scope, then either thread-pool-stop! must be
+;; applied to the pool before that scope is exited, or the last task
+;; added to the pool should itself apply thread-pool-stop! to the pool
+;; (which it can do if 'non-blocking' is #t).  Otherwise, the minimum
+;; value of threads will remain alive uselessly in blocked condition
+;; in the pool until the program terminates, even though the pool may
+;; be inaccessible.
 ;;
 ;; The #:idle keyname specifies the length of time in milliseconds
 ;; that threads greater in number than #:min-threads and not executing
-;; any tasks will remain in existence.  The default is 10000 (10
+;; any tasks will remain in existence.  The default is 5000 (5
 ;; seconds).
 ;;
 ;; The #:non-blocking keyname affects the operation of the
@@ -153,7 +166,7 @@
 				 (or max-threads 8)
 				 (or min-threads 0)
 				 0
-				 (or idle 10000)
+				 (or idle 5000)
 				 0
 				 (not non-blocking)
 				 #f)))
