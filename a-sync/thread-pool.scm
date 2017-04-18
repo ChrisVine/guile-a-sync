@@ -92,7 +92,7 @@
 
 (define-record-type <thread-pool>
   (_make-thread-pool mutex condvar aq max-threads min-threads num-threads
-		     idle-time num-tasks blocking stopped)
+		     idle-time thread-start num-tasks blocking stopped)
   thread-pool?
   (mutex mutex-get)
   (condvar condvar-get)
@@ -101,6 +101,7 @@
   (min-threads min-threads-get)
   (num-threads num-threads-get num-threads-set!)
   (idle-time idle-time-get idle-time-set!)
+  (thread-start thread-start-get thread-start-set!)
   (num-tasks num-tasks-get num-tasks-set!)
   (blocking blocking-get blocking-set!)
   (stopped stopped-get stopped-set!))
@@ -169,6 +170,7 @@
 				 0
 				 (or idle 5000)
 				 0
+				 0
 				 (not non-blocking)
 				 #f)))
     (catch #t
@@ -213,10 +215,10 @@
 				  (blocking-get pool))
 			 (broadcast-condition-variable (condvar-get pool)))
 		       ;; end thread if idle time elapsed without a task
-		       (return #f))))
-	       (lp (if persistent
-		       (a-queue-pop! (aq-get pool))
-		       (a-queue-timed-pop! (aq-get pool) (idle-time-get pool)))))
+		       (return #f))
+		     (lp (if persistent
+			     (a-queue-pop! (aq-get pool))
+			     (a-queue-timed-pop! (aq-get pool) (idle-time-get pool)))))))
 	     (begin
 	      (catch #t
 		(lambda ()
@@ -238,17 +240,25 @@
 			    (error
 			     (string-append "Exception thrown by thread pool task with no fail-handler: "
 					    (object->string (cons key args)))))))))
-	      ;; cater for a case where the maximum number of threads
-	      ;; has been reduced by the user
 	      (with-mutex mutex
 		(num-tasks-set! pool (1- (num-tasks-get pool)))
+		;; cater for a case where the maximum number of
+		;; threads has been reduced by the user
 		(when (and (not persistent)
-			   (> (num-threads-get pool) (max-threads-get pool)))
+			   (> (num-threads-get pool) (max-threads-get pool))
+			   ;; we don't want a failure to start a new
+			   ;; thread in thread-pool-add! or
+			   ;; thread-pool-change-max-threads! to mean
+			   ;; that we can decrement num-threads to
+			   ;; less than 0 or that we have no threads
+			   ;; left with tasks still outstanding
+			   (zero? (thread-start-get pool)))
 		  (num-threads-set! pool (1- (num-threads-get pool)))
 		  (when (and (stopped-get pool)
 			     (blocking-get pool))
 		    (broadcast-condition-variable (condvar-get pool)))
 		  (return #f)))
+	      ;; we are outside the mutex here
 	      (lp (if persistent
 		      (a-queue-pop! (aq-get pool))
 		      (a-queue-timed-pop! (aq-get pool) (idle-time-get pool)))))))))))
@@ -316,46 +326,51 @@
 ;;
 ;; This procedure is first available in version 0.18 of this library.
 (define (thread-pool-change-max-threads! pool delta)
-  ;; to minimize contention, we want to start any new threads outside
-  ;; the mutex, but do the book-keeping within the mutex
-  (let ((start-threads
-	 (with-mutex (mutex-get pool)
-	   (let ((sought (+ (max-threads-get pool) delta))
-		 (min-threads (min-threads-get pool)))
-	     (cond
-	      ((stopped-get pool) #f)
-	      ((< delta 0)
-	       (max-threads-set! pool (cond
-				       ((and (> min-threads 0)
-					     (< sought min-threads))
-					min-threads)
-				       ((< sought 1) 1)
-				       (else sought)))
-	       #f)
-	      ((> delta 0)
-	       (max-threads-set! pool sought)
-	       (let ((num-threads (num-threads-get pool))
-		     (new-num-threads (min (num-tasks-get pool) sought)))
-		 (if (> new-num-threads num-threads)
-		     (begin
-		       (num-threads-set! pool new-num-threads)
-		       (- new-num-threads num-threads))
-		     #f)))
-	      (else #f))))))
-    (when start-threads
-      (do ((count 0 (1+ count)))
-	  ((= count start-threads))
-	(catch #t
-	  (lambda ()
-	    (call-with-new-thread (lambda () (thread-loop pool #f))))
-	  (lambda args
-	    ;; roll back for any unstarted threads
-	    (with-mutex (mutex-get pool)
-	      (num-threads-set! pool (+ (- (num-threads-get pool) start-threads) count))
-	      (when (and (stopped-get pool)
-			 (blocking-get pool))
-		(broadcast-condition-variable (condvar-get pool)))
-	      (apply throw args))))))))
+  (let ((mutex (mutex-get pool)))
+    ;; to minimize contention, we want to start any new threads
+    ;; outside the mutex, but do the book-keeping within the mutex
+    (let ((start-threads
+	   (with-mutex mutex
+	     (let ((sought (+ (max-threads-get pool) delta))
+		   (min-threads (min-threads-get pool)))
+	       (cond
+		((stopped-get pool) #f)
+		((< delta 0)
+		 (max-threads-set! pool (cond
+					 ((and (> min-threads 0)
+					       (< sought min-threads))
+					  min-threads)
+					 ((< sought 1) 1)
+					 (else sought)))
+		 #f)
+		((> delta 0)
+		 (max-threads-set! pool sought)
+		 (let ((num-threads (num-threads-get pool))
+		       (new-num-threads (min (num-tasks-get pool) sought)))
+		   (if (> new-num-threads num-threads)
+		       (begin
+			 (num-threads-set! pool new-num-threads)
+			 (thread-start-set! pool (1+ (thread-start-get pool)))
+			 (- new-num-threads num-threads))
+		       #f)))
+		(else #f))))))
+      (when start-threads
+	(do ((count 0 (1+ count)))
+	    ((= count start-threads))
+	  (catch #t
+	    (lambda ()
+	      (call-with-new-thread (lambda () (thread-loop pool #f))))
+	    (lambda args
+	      ;; roll back for any unstarted threads
+	      (with-mutex mutex
+		(num-threads-set! pool (+ (- (num-threads-get pool) start-threads) count))
+		(thread-start-set! pool (1- (thread-start-get pool)))
+		(when (and (stopped-get pool)
+			   (blocking-get pool))
+		  (broadcast-condition-variable (condvar-get pool)))
+		(apply throw args)))))
+	(with-mutex mutex
+	  (thread-start-set! pool (1- (thread-start-get pool))))))))
 
 ;; This procedure returns the current non-blocking status of the
 ;; thread pool.  (See the documentation on the thread-pool-stop!
@@ -496,6 +511,7 @@
 		   (begin
 		     (num-tasks-set! pool (1+ num-tasks))
 		     (num-threads-set! pool (1+ num-threads))
+		     (thread-start-set! pool (1+ (thread-start-get pool)))
 		     #t)
 		   (begin
 		     (num-tasks-set! pool (1+ num-tasks))
@@ -511,10 +527,13 @@
 	    (with-mutex mutex
 	      (num-tasks-set! pool (1- (num-tasks-get pool)))
 	      (num-threads-set! pool (1- (num-threads-get pool)))
+	      (thread-start-set! pool (1- (thread-start-get pool)))
 	      (when (and (stopped-get pool)
 			 (blocking-get pool))
 		(broadcast-condition-variable (condvar-get pool)))
-	      (apply throw args))))))
+	      (apply throw args))))
+	(with-mutex mutex
+	  (thread-start-set! pool (1- (thread-start-get pool))))))
     ;; we need to check again whether thread-pool-stop! has been
     ;; called between us releasing the mutex above and reaching here.
     ;; We need to hold the mutex when adding the task so that the
