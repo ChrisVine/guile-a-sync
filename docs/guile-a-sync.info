@@ -2249,6 +2249,14 @@ the already accumulated tasks has reduced.
 
      This procedure is first available in version 0.18 of this library.
 
+ -- Scheme Procedure: thread-pool-get-num-threads pool
+     This procedure returns the number of threads currently running in
+     the thread pool.
+
+     This procedure is thread safe (any thread may call it).
+
+     This procedure is first available in version 0.18 of this library.
+
  -- Scheme Procedure: thread-pool-get-max-threads pool
      This procedure returns the current maximum number of threads set
      for the thread pool.
@@ -2279,7 +2287,22 @@ the already accumulated tasks has reduced.
      If 'delta' is positive and tasks are currently queued for
      execution, a new thread or threads will be started for the queued
      tasks.  This procedure may therefore throw an exception if the
-     system is unable to start the required new thread(s).
+     system is unable to start the required new thread(s).  Because
+     starting new threads can be time consuming, to minimize contention
+     new threads are started outside the pool's mutex, although internal
+     book-keeping is done within the mutex.  One consequence is that if
+     min-threads is 0 and, concurrently with this thread increasing the
+     value of max-threads, another thread reduces that value by an
+     amount equal to or greater than the original max-threads value, and
+     the system fails to start any new threads at all, then the pool
+     could have no running threads in it (so that
+     thread-pool-get-num-threads returns 0) even though some tasks
+     previously added to it remain pending.  The pool can then only be
+     prompted to start new threads by calling thread-pool-add!  again.
+     However if the system can start no new threads even though none are
+     running in the pool, it will be significantly broken so it is not
+     usually worth troubling about this - the program is doomed in that
+     event whatever.
 
      This procedure is first available in version 0.18 of this library.
 
@@ -2369,7 +2392,7 @@ the already accumulated tasks has reduced.
 
      This procedure is first available in version 0.18 of this library.
 
- -- Syntax: (with-thread-pool-increment pool body0 body1 ...)
+ -- Syntax: with-thread-pool-increment pool body0 body1 ...
      This macro is intended to be called by a task running on a thread
      pool which is about to make a blocking (non-asynchronous) call.  It
      will increment the max-threads value of 'pool' by 1 (by calling
@@ -3773,9 +3796,9 @@ Node: coroutines4756
 Node: event loop23080
 Node: sockets107788
 Node: thread pool111166
-Node: monotonic time130574
-Node: gnome glib132009
-Node: compose172107
-Node: meeting179316
+Node: monotonic time131859
+Node: gnome glib133294
+Node: compose173392
+Node: meeting180601
 
 End Tag Table
