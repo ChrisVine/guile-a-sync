@@ -146,18 +146,22 @@ procedure may therefore throw an exception if the system is unable to
 start the required new thread(s).  Because starting new threads can be
 time consuming, to minimize contention new threads are started outside
 the pool's mutex, although internal book-keeping is done within the
-mutex.  One consequence is that if min-threads is 0 and, concurrently
-with this thread increasing the value of max-threads, another thread
-reduces that value by an amount equal to or greater than the original
-max-threads value, and the system fails to start any new threads at
-all, then the pool could have no running threads in it (so that
+mutex.  One consequence is that if such an exception is thrown while
+another thread has concurrently tried to reduce the size of the pool,
+the number of threads running in the pool may be smaller than it was
+when this procedure was called.  Where min-threads is 0, in certain
+circumstances after an exception where no new threads can be started,
+the pool could have no running threads in it (so that
 thread-pool-get-num-threads returns 0) even though some tasks
-previously added to it remain pending.  The pool can then only be
-prompted to start new threads by calling thread-pool-add! again.
-However if the system can start no new threads even though none are
-running in the pool, it will be significantly broken so it is not
-usually worth troubling about this - the program is doomed in that
-event whatever.
+previously added to the pool remain pending.  If the system can start
+no new threads even though none are running in the pool, it will be
+significantly broken so it is not usually worth troubling about this -
+the program is doomed in that event whatever.  However if that is
+wrong and the cause of the failure to start any threads can be
+addressed, then the thread pool can be brought back into use by
+calling this procedure again with a positive value (which can be
+preceded by a call with a negative value to prevent too many threads
+trying to start).
 
 This procedure is first available in version 0.18 of this library.
 @end deffn
