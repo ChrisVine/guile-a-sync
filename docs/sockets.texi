@@ -1,6 +1,6 @@
 @node sockets,thread pool,event loop,Top
 
-This (a-sync compose) module provides asynchronous accept and connect
+This (a-sync sockets) module provides asynchronous accept and connect
 procedures for sockets.
 
 @deffn {Scheme Procedure} await-accept! await resume [loop] sock

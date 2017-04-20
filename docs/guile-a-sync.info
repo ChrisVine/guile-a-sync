@@ -2073,7 +2073,7 @@ monotonic-time): monotonic time. module.
 
 File: guile-a-sync.info,  Node: sockets,  Next: thread pool,  Prev: event loop,  Up: Top
 
-This (a-sync compose) module provides asynchronous accept and connect
+This (a-sync sockets) module provides asynchronous accept and connect
 procedures for sockets.
 
  -- Scheme Procedure: await-accept! await resume [loop] sock
