@@ -256,7 +256,19 @@
   (test-result 4 count)
   (print-result))
 
-;; Test 8: await-task-in-thread-pool! without handler
+;; Test 8: thread pool timeout
+
+(let ((pool (make-thread-pool #:idle 1))
+      (count 0))
+  (thread-pool-add! pool (lambda ()
+			   (set! count 1)))
+  (usleep 100000)
+  (test-result 0 (thread-pool-get-num-threads pool))
+  (test-result 1 count)
+  (thread-pool-stop! pool)
+  (print-result))
+
+;; Test 9: await-task-in-thread-pool! without handler
 
 (define main-loop (make-event-loop))
 
@@ -275,7 +287,7 @@
   (event-loop-block! #f main-loop)
   (thread-pool-stop! pool))
 		    
-;; Test 9: await-task-in-thread-pool! with handler
+;; Test 10: await-task-in-thread-pool! with handler
 
 (let ((pool (make-thread-pool)))
   (a-sync (lambda (await resume)
@@ -295,7 +307,7 @@
   (event-loop-block! #f main-loop)
   (thread-pool-stop! pool))
 
-;; Test 10: await-generator-in-thread-pool! without handler
+;; Test 11: await-generator-in-thread-pool! without handler
 
 (let ((pool (make-thread-pool))
       (lst '()))
@@ -319,7 +331,7 @@
   (event-loop-run! main-loop)
   (thread-pool-stop! pool))
 
-;; Test 11: await-generator-in-thread-pool! with handler
+;; Test 12: await-generator-in-thread-pool! with handler
 
 (let ((pool (make-thread-pool))
       (lst '()))
@@ -360,7 +372,7 @@
 (event-loop-block! #f main-loop)
 (set-default-event-loop! main-loop)
 
-;; Test 12: await-task-in-thread-pool! without handler
+;; Test 13: await-task-in-thread-pool! without handler
 
 (let ((pool (make-thread-pool)))
   (a-sync (lambda (await resume)
@@ -377,7 +389,7 @@
   (event-loop-block! #f)
   (thread-pool-stop! pool))
 		    
-;; Test 13: await-task-in-thread-pool! with handler
+;; Test 14: await-task-in-thread-pool! with handler
 
 (let ((pool (make-thread-pool)))
   (a-sync (lambda (await resume)
@@ -397,7 +409,7 @@
   (event-loop-block! #f)
   (thread-pool-stop! pool))
 
-;; Test 14: await-generator-in-thread-pool! without handler
+;; Test 15: await-generator-in-thread-pool! without handler
 
 (let ((pool (make-thread-pool))
       (lst '()))
@@ -421,7 +433,7 @@
   (event-loop-run!)
   (thread-pool-stop! pool))
 
-;; Test 15: await-generator-in-thread-pool! with handler
+;; Test 16: await-generator-in-thread-pool! with handler
 
 (let ((pool (make-thread-pool))
       (lst '()))
@@ -457,7 +469,7 @@
   (event-loop-run!)
   (thread-pool-stop! pool))
 
-;; Test 16: with-thread-pool-increment
+;; Test 17: with-thread-pool-increment
 
 (let ((pool (make-thread-pool #:max-threads 1))
       (mutex (make-mutex))
