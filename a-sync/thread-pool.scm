@@ -160,7 +160,7 @@
 		      (> min-threads max-threads))
 		 (and (not max-threads)
 		      (> min-threads 8))))
-    (error "min-threads value passed to make-thread-pool is less than max-threads value"))
+    (error "min-threads value passed to make-thread-pool is greater than max-threads value"))
   (let ((pool (_make-thread-pool (make-mutex)
 				 (make-condition-variable)
 				 (make-a-queue)
@@ -417,15 +417,26 @@
   (with-mutex (mutex-get pool)
     (not (blocking-get pool))))
 
-;; This procedure sets the non-blocking status of the thread pool.
-;; (See the documentation on the thread-pool-stop!  procedure for more
-;; information about what that means.)
+;; This procedure sets the non-blocking status of the thread pool.  If
+;; 'val' is #f, the thread-pool-stop procedure will block, if #t it
+;; will not.  (See the documentation on the thread-pool-stop!
+;; procedure for more information about this.)
 ;;
 ;; This procedure is thread safe (any thread may call it).
+;;
+;; This procedure will throw a 'thread-pool-error exception if it is
+;; invoked after the thread pool object concerned has been closed by a
+;; call to thread-pool-stop!.
 ;;
 ;; This procedure is first available in version 0.18 of this library.
 (define (thread-pool-set-non-blocking! pool val)
   (with-mutex (mutex-get pool)
+    (when (stopped-get pool)
+      (throw 'thread-pool-error
+	     "thread-pool-set-non-blocking!"
+	     "thread-pool-set-non-blocking! applied to a thread pool which has been closed"
+	     #f
+	     #f))
     (blocking-set! pool (not val))))
 
 ;; This procedure returns the current idle time setting for the thread
@@ -483,10 +494,12 @@
       (let ((thread-count (num-threads-get pool)))
 	;; we could be adding more 'kill-thread callbacks than
 	;; necessary here, because as we are doing this a timeout on a
-	;; thread might expire leading to its demise in that way.
-	;; However, that doesn't matter - we just get left with a
-	;; redundant callback in 'aq' which never gets used and
-	;; disappears when the pool is garbage collected
+	;; thread might expire leading to its demise in that way, or a
+	;; concurrent call to thread-pool-change-max-threads! or
+	;; thread-pool-add! may have failed to start a thread and
+	;; thrown an exception.  However, that doesn't matter - we
+	;; just get left with a redundant callback in 'aq' which never
+	;; gets used and disappears when the pool is garbage collected
 	(do ((kill-count 0 (1+ kill-count)))
 	    ((= kill-count thread-count))
 	  (a-queue-push! (aq-get pool) (cons (lambda () (throw 'kill-thread)) #f)))

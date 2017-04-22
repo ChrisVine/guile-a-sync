@@ -2319,11 +2319,16 @@ the already accumulated tasks has reduced.
      This procedure is first available in version 0.18 of this library.
 
  -- Scheme Procedure: thread-pool-set-non-blocking! pool val
-     This procedure sets the non-blocking status of the thread pool.
-     (See the documentation on the thread-pool-stop!  procedure for more
-     information about what that means.)
+     This procedure sets the non-blocking status of the thread pool.  If
+     'val' is #f, the thread-pool-stop procedure will block, if #t it
+     will not.  (See the documentation on the thread-pool-stop!
+     procedure for more information about this.)
 
      This procedure is thread safe (any thread may call it).
+
+     This procedure will throw a 'thread-pool-error exception if it is
+     invoked after the thread pool object concerned has been closed by a
+     call to thread-pool-stop!.
 
      This procedure is first available in version 0.18 of this library.
 
@@ -3799,9 +3804,9 @@ Node: coroutines4756
 Node: event loop23080
 Node: sockets107788
 Node: thread pool111166
-Node: monotonic time132138
-Node: gnome glib133573
-Node: compose173671
-Node: meeting180880
+Node: monotonic time132388
+Node: gnome glib133823
+Node: compose173921
+Node: meeting181130
 
 End Tag Table
