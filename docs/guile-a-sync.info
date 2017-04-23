@@ -2393,10 +2393,11 @@ the already accumulated tasks has reduced.
      using catch).
 
      If this procedure starts a new thread (see above), it may throw an
-     exception if the system is unable to start the thread correctly.
-     This procedure will throw a 'thread-pool-error exception if it is
-     invoked after the thread pool object concerned has been closed by a
-     call to thread-pool-stop!.
+     exception if the system is unable to start the thread correctly,
+     and if it does so the task will not be added.  This procedure will
+     throw a 'thread-pool-error exception if it is invoked after the
+     thread pool object concerned has been closed by a call to
+     thread-pool-stop!.
 
      This procedure is first available in version 0.18 of this library.
 
@@ -3804,9 +3805,9 @@ Node: coroutines4756
 Node: event loop23080
 Node: sockets107788
 Node: thread pool111166
-Node: monotonic time132388
-Node: gnome glib133823
-Node: compose173921
-Node: meeting181130
+Node: monotonic time132440
+Node: gnome glib133875
+Node: compose173973
+Node: meeting181182
 
 End Tag Table

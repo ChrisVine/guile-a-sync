@@ -319,10 +319,10 @@ arguments as if it were a guile catch handler (it is implemented
 using catch).
 </p>
 <p>If this procedure starts a new thread (see above), it may throw an
-exception if the system is unable to start the thread correctly.  This
-procedure will throw a &rsquo;thread-pool-error exception if it is invoked
-after the thread pool object concerned has been closed by a call to
-thread-pool-stop!.
+exception if the system is unable to start the thread correctly, and
+if it does so the task will not be added.  This procedure will throw a
+&rsquo;thread-pool-error exception if it is invoked after the thread pool
+object concerned has been closed by a call to thread-pool-stop!.
 </p>
 <p>This procedure is first available in version 0.18 of this library.
 </p></dd></dl>

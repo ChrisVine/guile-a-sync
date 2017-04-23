@@ -388,10 +388,11 @@
 		;; (iv) the attempt to launch new threads failed with
 		;; an exception without launching even one of them.
 		;; In such a case we should be able to launch a rescue
-		;; thread because no other threads could be running in
-		;; the pool.  If we still cannot launch a thread the
-		;; program and/or system must be totally borked anyway
-		;; and there is little we can do.
+		;; thread while holding the mutex because no other
+		;; threads could be running in the pool.  If we still
+		;; cannot launch a thread the program and/or system
+		;; must be totally borked and there is little we can
+		;; do.
 		(when (zero? (num-threads-get pool))
 		  ;; if this fails, all is lost (that is, we may have
 		  ;; queued tasks in the pool with no thread startable
@@ -528,10 +529,11 @@
 ;; using catch).
 ;;
 ;; If this procedure starts a new thread (see above), it may throw an
-;; exception if the system is unable to start the thread correctly.
-;; This procedure will throw a 'thread-pool-error exception if it is
-;; invoked after the thread pool object concerned has been closed by a
-;; call to thread-pool-stop!.
+;; exception if the system is unable to start the thread correctly,
+;; and if it does so the task will not be added.  This procedure will
+;; throw a 'thread-pool-error exception if it is invoked after the
+;; thread pool object concerned has been closed by a call to
+;; thread-pool-stop!.
 ;;
 ;; This procedure is first available in version 0.18 of this library.
 (define* (thread-pool-add! pool task #:optional fail-handler)
@@ -571,12 +573,36 @@
 	    (call-with-new-thread (lambda () (thread-loop pool #f))))
 	  (lambda args
 	    (with-mutex mutex
-	      (num-tasks-set! pool (1- (num-tasks-get pool)))
-	      (num-threads-set! pool (1- (num-threads-get pool)))
-	      (when (and (stopped-get pool)
-			 (blocking-get pool))
-		(broadcast-condition-variable (condvar-get pool)))
-	      (apply throw args))))))
+              ;; If min-threads is 0 we could be down to 0 threads
+              ;; with tasks still pending if in the period between
+              ;; releasing the mutex acquired on entry to this
+              ;; procedure and acquiring it again on handling this
+              ;; exception, there have been concurrent calls to
+              ;; thread-pool-set-max-threads! increasing and reducing
+              ;; the maximum thread count by at least two other
+              ;; threads where the launching of all new threads via
+              ;; that procedure and this one fails.  In such a case we
+              ;; should be able to launch a rescue thread while
+              ;; holding the mutex because no other threads could be
+              ;; running in the pool.  If we still cannot launch a
+              ;; thread the program and/or system must be totally
+              ;; borked and there is little we can do.
+              (let ((retry
+                     (if (= (num-threads-get pool) 1)
+                         (catch #t
+                           (lambda ()
+                             (call-with-new-thread (lambda () (thread-loop pool #f)))
+			     #t)
+                           (lambda args
+                             #f))
+                         #f)))
+                (when (not retry)
+		  (num-tasks-set! pool (1- (num-tasks-get pool)))
+		  (num-threads-set! pool (1- (num-threads-get pool)))
+		  (when (and (stopped-get pool)
+			     (blocking-get pool))
+		    (broadcast-condition-variable (condvar-get pool)))
+		  (apply throw args))))))))
     ;; we need to check again whether thread-pool-stop! has been
     ;; called between us releasing the mutex above and reaching here.
     ;; We need to hold the mutex when adding the task so that the
