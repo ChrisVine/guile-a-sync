@@ -269,9 +269,12 @@
   ;; to call it for rate-limiting reasons.  The field could therefore
   ;; be modified by another thread concurrently with this read, but
   ;; guile guarantees that storing into a SCM location concurrently
-  ;; from multiple threads is thread safe.  This gives us an
-  ;; equivalent to relaxed (unsynchronized) atomic memory ordering,
-  ;; which is sufficient for our purpose.
+  ;; from multiple threads is thread safe.  It does this by storing
+  ;; SCM objects in a type of size uintptr_t and aligning them on
+  ;; 8-byte boundaries (see the guile source file tags.h for further
+  ;; details).  This gives us an equivalent to relaxed
+  ;; (unsynchronized) atomic memory ordering, which is sufficient for
+  ;; our purpose.
   (num-tasks-get pool))
 
 ;; This procedure returns the number of threads currently running in
