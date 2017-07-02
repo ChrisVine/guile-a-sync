@@ -343,7 +343,11 @@
   (define write-files #f)
   (define write-files-actions #f)
 
-  (with-mutex mutex (_loop-thread-set! el (current-thread)))
+  (with-mutex mutex
+    (_loop-thread-set! el (current-thread))
+    ;; in case event-loop-quit! was called after this procedure had
+    ;; previously returned
+    (_done-set! el #f))
 
   (catch
     #t
