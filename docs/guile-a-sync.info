@@ -606,9 +606,13 @@ using event-post!.
      event loop will run in the thread which calls this procedure.  If
      this procedure has returned, including after a call to
      event-loop-quit!, this procedure may be called again to restart the
-     event loop.  If a callback throws, or something else throws in the
-     implementation, then this procedure will clean up the event loop as
-     if event-loop-quit!  had been called, and the exception will be
+     event loop, provided event-loop-close!  has not been applied to the
+     loop.  If event-loop-close!  has previously been invoked, this
+     procedure will throw an 'event-loop-error exception.
+
+     If something else throws in the implementation or a callback
+     throws, then this procedure will clean up the event loop as if
+     event-loop-quit!  had been called, and the exception will be
      rethrown out of this procedure.
 
  -- Scheme Procedure: event-loop-add-read-watch! file proc [loop]
@@ -689,6 +693,9 @@ using event-post!.
      and a port with the same underlying file descriptor compare equal
      for the purposes of removal.
 
+     This procedure should not throw an exception unless memory is
+     exhausted.
+
  -- Scheme Procedure: event-loop-remove-write-watch! file [loop]
      The 'loop' (event loop) argument is optional.  This procedure will
      remove a write watch from the event loop passed in as an argument,
@@ -697,6 +704,9 @@ using event-post!.
      is thread safe - any thread may remove a watch.  A file descriptor
      and a port with the same underlying file descriptor compare equal
      for the purposes of removal.
+
+     This procedure should not throw an exception unless memory is
+     exhausted.
 
  -- Scheme Procedure: event-post! action [loop]
      The 'loop' (event loop) argument is optional.  This procedure will
@@ -738,6 +748,9 @@ using event-post!.
      passed in as an argument, or if none is passed (or #f is passed),
      in the default event loop.  It may be called by any thread.
 
+     This procedure should not throw an exception unless memory is
+     exhausted.
+
  -- Scheme Procedure: event-loop-tasks [loop]
      This procedure returns the number of callbacks posted to an event
      loop with the event-post!  procedure which at the time still remain
@@ -770,6 +783,9 @@ using event-post!.
      this procedure operates on the event loop passed in as an argument,
      or if none is passed (or #f is passed), on the default event loop.
 
+     This procedure should not throw an exception unless memory is
+     exhausted.
+
  -- Scheme Procedure: event-loop-quit! [loop]
      This procedure causes an event loop to unblock.  Any events
      remaining in the event loop will be discarded.  New events may
@@ -779,6 +795,34 @@ using event-post!.
      is optional: this procedure operates on the event loop passed in as
      an argument, or if none is passed (or #f is passed), on the default
      event loop.
+
+     This procedure should not throw an exception unless memory is
+     exhausted.
+
+ -- Scheme Procedure: event-loop-close! [loop]
+     This procedure closes an event loop.  Like event-loop-quit!, if the
+     loop is still running it causes the event loop to unblock, and any
+     events remaining in the event loop will be discarded.  However,
+     unlike event-loop-quit!, it also closes the internal event pipe
+     ports, and any subsequent application of event-loop-run!  to the
+     event loop will cause an 'event-loop-error exception to be thrown.
+
+     You might want to call this procedure to ensure that, after an
+     event loop in a local scope has been finished with, the two
+     internal event pipe file descriptors used by the loop are released
+     to the operating system in advance of the garbage collector being
+     called on it when it becomes inaccessible.
+
+     This is thread safe - any thread may call this procedure, including
+     any callback or task running on the event loop.  The 'loop'
+     argument is optional: this procedure operates on the event loop
+     passed in as an argument, or if none is passed (or #f is passed),
+     on the default event loop.
+
+     This procedure should not throw an exception unless memory is
+     exhausted.
+
+     This procedure is first available in version 0.19 of this library.
 
  -- Scheme Procedure: await-task-in-thread! await resume [loop] thunk
           [handler]
@@ -1093,8 +1137,8 @@ using event-post!.
      out of the event-loop-run!  procedure called for the 'worker' event
      loop.  Exceptions arising during the execution of 'proc', if not
      caught locally, will propagate out of the event-loop-run!
-     procedure called for the 'waiter' or default event loop (as the
-     case may be).
+     procedure called for the 'waiter' or default event loop, as the
+     case may be.
 
      This procedure is first available in version 0.9 of this library.
 
@@ -1166,8 +1210,8 @@ using event-post!.
      setting up (that is, before the task starts), which shouldn't
      happen unless memory is exhausted.  Exceptions arising during
      execution of the generator, if not caught locally, will propagate
-     out of await-generator!.  Exceptions thrown by 'proc', if not
-     caught locally, will propagate out of event-loop-run!.
+     out of event-loop-run!.  Exceptions thrown by 'proc', if not caught
+     locally, will propagate out of event-loop-run!.
 
      This procedure is first available in version 0.9 of this library.
 
@@ -3803,11 +3847,11 @@ Node: Top85
 Node: overview1453
 Node: coroutines4756
 Node: event loop23080
-Node: sockets107788
-Node: thread pool111166
-Node: monotonic time132440
-Node: gnome glib133875
-Node: compose173973
-Node: meeting181182
+Node: sockets109658
+Node: thread pool113036
+Node: monotonic time134310
+Node: gnome glib135745
+Node: compose175843
+Node: meeting183052
 
 End Tag Table

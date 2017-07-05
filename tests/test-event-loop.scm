@@ -215,11 +215,35 @@
   (test-result 3 count)
   (print-result))
 
+;; Test 8: event-loop-block! and event-loop-close! (this test needs to
+;; come last as it closes the event loop)
+
+(let ()
+  (define count 0)
+  (call-with-new-thread (lambda ()
+			  ;; we don't need mutex here as the main
+			  ;; thread only access count before the
+			  ;; thread starts and after it ends
+			  (set! count (1+ count))
+			  (event-post! (lambda ()
+					 (event-loop-close! main-loop))
+				       main-loop)))
+  (event-loop-block! #t main-loop)
+  (event-loop-run! main-loop)
+  (test-result 1 count)
+  (catch 'event-loop-error
+    (lambda ()
+      (event-loop-run! main-loop))
+    (lambda args
+      (set! count (1+ count))))
+  (test-result 2 count)
+  (print-result))
+
 ;;;;;;;;;; now the same tests with a default event loop ;;;;;;;;;;
 
-(set-default-event-loop! main-loop)
+(set-default-event-loop!)
 
-;; Test 8: event-post!
+;; Test 9: event-post!
 
 (let ()
   (define count 0)
@@ -229,7 +253,7 @@
   (test-result 1 count)
   (print-result))
   
-;; Test 9: timeout-post! and timeout-remove!
+;; Test 10: timeout-post! and timeout-remove!
 
 ;; set a new default event loop
 (set-default-event-loop!)
@@ -255,7 +279,7 @@
   (test-result 3 count2)
   (print-result))
 
-;; Test 10: event-loop-block! and event-loop-quit!
+;; Test 11: event-loop-block! and event-loop-quit!
 
 (let ()
   (define count 0)
@@ -277,7 +301,7 @@
   (test-result 2 count)
   (print-result))
 
-;; Test 11: event-loop-add-read-watch!
+;; Test 12: event-loop-add-read-watch!
 
 (let ()
   (define test-pipe (pipe))
@@ -307,7 +331,7 @@
   (test-result 3 count)
   (print-result))
 
-;; Test 12: event-loop-add-read-watch! and event-loop-remove-read-watch!
+;; Test 13: event-loop-add-read-watch! and event-loop-remove-read-watch!
 
 (let ()
   (define test-pipe (pipe))
@@ -337,7 +361,7 @@
   (test-result 3 count)
   (print-result))
 
-;; Test 13: event-loop-add-write-watch!
+;; Test 14: event-loop-add-write-watch!
 
 (let ()
   (define test-pipe (pipe))
@@ -368,7 +392,7 @@
   (test-result 3 count)
   (print-result))
 
-;; Test 14: event-loop-add-write-watch! and event-loop-remove-write-watch!
+;; Test 15: event-loop-add-write-watch! and event-loop-remove-write-watch!
 
 (let ()
   (define test-pipe (pipe))
@@ -399,6 +423,29 @@
   (test-result 3 count)
   (print-result))
 
+;; Test 16: event-loop-block! and event-loop-close! (this test needs
+;; to come last as it closes the event loop)
+
+(let ()
+  (define count 0)
+  (call-with-new-thread (lambda ()
+			  ;; we don't need mutex here as the main
+			  ;; thread only access count before the
+			  ;; thread starts and after it ends
+			  (set! count (1+ count))
+			  (event-post! (lambda ()
+					 (event-loop-close!)))))
+  (event-loop-block! #t)
+  (event-loop-run!)
+  (test-result 1 count)
+  (catch 'event-loop-error
+    (lambda ()
+      (event-loop-run!))
+    (lambda args
+      (set! count (1+ count))))
+  (test-result 2 count)
+  (print-result))
+
 ;;;;;;;;;;;;; now tests with a throttled event loop ;;;;;;;;;;;;;
 
 (define throttled-loop (make-event-loop 3 100000))
@@ -410,7 +457,7 @@
       (/ (* (- end-time start-time) 1000)
 	 internal-time-units-per-second))))
 
-;; Test 15: throttling arguments of make-event-loop
+;; Test 17: throttling arguments of make-event-loop
 
 (let ()
   (event-loop-block! #t throttled-loop)

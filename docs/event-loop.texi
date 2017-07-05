@@ -126,10 +126,15 @@ the event loop passed in as an argument, or if none is passed (or #f
 is passed) it starts the default event loop.  The event loop will run
 in the thread which calls this procedure.  If this procedure has
 returned, including after a call to event-loop-quit!, this procedure
-may be called again to restart the event loop.  If a callback throws,
-or something else throws in the implementation, then this procedure
-will clean up the event loop as if event-loop-quit! had been called,
-and the exception will be rethrown out of this procedure.
+may be called again to restart the event loop, provided
+event-loop-close! has not been applied to the loop.  If
+event-loop-close! has previously been invoked, this procedure will
+throw an 'event-loop-error exception.
+
+If something else throws in the implementation or a callback throws,
+then this procedure will clean up the event loop as if
+event-loop-quit! had been called, and the exception will be rethrown
+out of this procedure.
 @end deffn
 
 @deffn {Scheme Procedure} event-loop-add-read-watch! file proc [loop]
@@ -208,6 +213,9 @@ file argument may be a port or a file descriptor.  This is thread safe
 - any thread may remove a watch.  A file descriptor and a port with
 the same underlying file descriptor compare equal for the purposes of
 removal.
+
+This procedure should not throw an exception unless memory is
+exhausted.
 @end deffn
 
 @deffn {Scheme Procedure} event-loop-remove-write-watch! file [loop]
@@ -218,6 +226,9 @@ file argument may be a port or a file descriptor.  This is thread safe
 - any thread may remove a watch.  A file descriptor and a port with
 the same underlying file descriptor compare equal for the purposes of
 removal.
+
+This procedure should not throw an exception unless memory is
+exhausted.
 @end deffn
 
 @deffn {Scheme Procedure} event-post! action [loop]
@@ -261,6 +272,9 @@ The 'loop' (event loop) argument is optional.  This procedure stops
 the timeout with the given tag from executing in the event loop passed
 in as an argument, or if none is passed (or #f is passed), in the
 default event loop.  It may be called by any thread.
+
+This procedure should not throw an exception unless memory is
+exhausted.
 @end deffn
 
 @deffn {Scheme Procedure} event-loop-tasks [loop]
@@ -294,6 +308,9 @@ calling event-loop-quit!, or by calling event-loop-block! again with a
 'loop' (event loop) argument is optional: this procedure operates on
 the event loop passed in as an argument, or if none is passed (or #f
 is passed), on the default event loop.
+
+This procedure should not throw an exception unless memory is
+exhausted.
 @end deffn
 
 @deffn {Scheme Procedure} event-loop-quit! [loop]
@@ -304,6 +321,35 @@ called for them.  This is thread safe - any thread may call this
 procedure.  The 'loop' (event loop) argument is optional: this
 procedure operates on the event loop passed in as an argument, or if
 none is passed (or #f is passed), on the default event loop.
+
+This procedure should not throw an exception unless memory is
+exhausted.
+@end deffn
+
+@deffn {Scheme Procedure} event-loop-close! [loop]
+This procedure closes an event loop.  Like event-loop-quit!, if the
+loop is still running it causes the event loop to unblock, and any
+events remaining in the event loop will be discarded.  However, unlike
+event-loop-quit!, it also closes the internal event pipe ports, and
+any subsequent application of event-loop-run! to the event loop will
+cause an 'event-loop-error exception to be thrown.
+
+You might want to call this procedure to ensure that, after an event
+loop in a local scope has been finished with, the two internal event
+pipe file descriptors used by the loop are released to the operating
+system in advance of the garbage collector being called on it when it
+becomes inaccessible.
+
+This is thread safe - any thread may call this procedure, including
+any callback or task running on the event loop.  The 'loop' argument
+is optional: this procedure operates on the event loop passed in as an
+argument, or if none is passed (or #f is passed), on the default event
+loop.
+
+This procedure should not throw an exception unless memory is
+exhausted.
+
+This procedure is first available in version 0.19 of this library.
 @end deffn
 
 @deffn {Scheme Procedure} await-task-in-thread! await resume [loop] thunk [handler]
@@ -625,7 +671,7 @@ of the generator, if not caught locally, will propagate out of the
 event-loop-run! procedure called for the 'worker' event loop.
 Exceptions arising during the execution of 'proc', if not caught
 locally, will propagate out of the event-loop-run! procedure called
-for the 'waiter' or default event loop (as the case may be).
+for the 'waiter' or default event loop, as the case may be.
 
 This procedure is first available in version 0.9 of this library.
 
@@ -698,7 +744,7 @@ Exceptions may propagate out of this procedure if they arise while
 setting up (that is, before the task starts), which shouldn't happen
 unless memory is exhausted.  Exceptions arising during execution of
 the generator, if not caught locally, will propagate out of
-await-generator!.  Exceptions thrown by 'proc', if not caught locally,
+event-loop-run!.  Exceptions thrown by 'proc', if not caught locally,
 will propagate out of event-loop-run!.
 
 This procedure is first available in version 0.9 of this library.
