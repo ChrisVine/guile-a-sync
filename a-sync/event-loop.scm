@@ -309,7 +309,7 @@
   (let ((threshold (_threshold-get el)))
     (when threshold
       (let ((loop-thread (with-mutex (_mutex-get el) (_loop-thread-get el))))
-	(when (and threshold loop-thread (not (eqv? loop-thread (current-thread))))
+	(when (and loop-thread (not (eqv? loop-thread (current-thread))))
 	  (let* ((tasks (with-mutex (_mutex-get el) (_num-tasks-get el)))
 		 (excess (/ tasks threshold)))
 	    (when (not (zero? (truncate excess)))
