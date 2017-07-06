@@ -133,12 +133,14 @@ with-thread-pool-increment macro is available which will do this for
 you automatically in an exception-safe way (see the documentation on
 that macro below).
 
-If 'delta' is negative and results in a max_threads value of less than
+If 'delta' is negative and results in a max-threads value of less than
 the current number of running threads, the number of threads actually
 running will only be reduced as tasks complete, or as idle timeouts
-expire.  This procedure does nothing if thread-pool-stop! has
-previously been called.  This procedure is thread safe - any thread
-may call it.
+expire.  The maximum number of threads will not be reduced by this
+procedure below the min-threads value, or if that value is 0, below 1.
+
+This procedure does nothing if thread-pool-stop!  has previously been
+called.  This procedure is thread safe - any thread may call it.
 
 If 'delta' is positive and tasks are currently queued for execution, a
 new thread or threads will be started for the queued tasks.  This

@@ -787,14 +787,24 @@ using event-post!.
      exhausted.
 
  -- Scheme Procedure: event-loop-quit! [loop]
-     This procedure causes an event loop to unblock.  Any events
-     remaining in the event loop will be discarded.  New events may
-     subsequently be added after event-loop-run!  has unblocked and
-     event-loop-run!  then called for them.  This is thread safe - any
-     thread may call this procedure.  The 'loop' (event loop) argument
-     is optional: this procedure operates on the event loop passed in as
-     an argument, or if none is passed (or #f is passed), on the default
+     This procedure causes an event loop to unblock.  Any file watches
+     or events remaining in the event loop will be discarded.  New file
+     watches and events may subsequently be added after event-loop-run!
+     has unblocked and event-loop-run!  then called for them.  This is
+     thread safe - any thread may call this procedure, including any
+     callback or task running on the event loop.  The 'loop' argument is
+     optional: this procedure operates on the event loop passed in as an
+     argument, or if none is passed (or #f is passed), on the default
      event loop.
+
+     Note that the discarding of file watches and unexecuted events
+     remaining in the event loop means that if one of the helper await-*
+     procedures provided by this library has been called but has not yet
+     returned, it may fail to complete, as its continuation may
+     disappear - it will be as if the a-sync block concerned had come to
+     an end.  It may therefore be best only to call this procedure on an
+     event loop after all such await-* procedures which are executing
+     have returned.
 
      This procedure should not throw an exception unless memory is
      exhausted.
@@ -802,10 +812,11 @@ using event-post!.
  -- Scheme Procedure: event-loop-close! [loop]
      This procedure closes an event loop.  Like event-loop-quit!, if the
      loop is still running it causes the event loop to unblock, and any
-     events remaining in the event loop will be discarded.  However,
-     unlike event-loop-quit!, it also closes the internal event pipe
-     ports, and any subsequent application of event-loop-run!  to the
-     event loop will cause an 'event-loop-error exception to be thrown.
+     file watches or events remaining in the event loop will be
+     discarded.  However, unlike event-loop-quit!, it also closes the
+     internal event pipe ports, and any subsequent application of
+     event-loop-run!  to the event loop will cause an 'event-loop-error
+     exception to be thrown.
 
      You might want to call this procedure to ensure that, after an
      event loop in a local scope has been finished with, the two
@@ -818,6 +829,15 @@ using event-post!.
      argument is optional: this procedure operates on the event loop
      passed in as an argument, or if none is passed (or #f is passed),
      on the default event loop.
+
+     Note that the discarding of file watches and unexecuted events
+     remaining in the event loop means that if one of the helper await-*
+     procedures provided by this library has been called but has not yet
+     returned, it may fail to complete, as its continuation may
+     disappear - it will be as if the a-sync block concerned had come to
+     an end.  It may therefore be best only to call this procedure on an
+     event loop after all such await-* procedures which are executing
+     have returned.
 
      This procedure should not throw an exception unless memory is
      exhausted.
@@ -2321,12 +2341,16 @@ the already accumulated tasks has reduced.
      will do this for you automatically in an exception-safe way (see
      the documentation on that macro below).
 
-     If 'delta' is negative and results in a max_threads value of less
+     If 'delta' is negative and results in a max-threads value of less
      than the current number of running threads, the number of threads
      actually running will only be reduced as tasks complete, or as idle
-     timeouts expire.  This procedure does nothing if thread-pool-stop!
-     has previously been called.  This procedure is thread safe - any
-     thread may call it.
+     timeouts expire.  The maximum number of threads will not be reduced
+     by this procedure below the min-threads value, or if that value is
+     0, below 1.
+
+     This procedure does nothing if thread-pool-stop!  has previously
+     been called.  This procedure is thread safe - any thread may call
+     it.
 
      If 'delta' is positive and tasks are currently queued for
      execution, a new thread or threads will be started for the queued
@@ -3847,11 +3871,11 @@ Node: Top85
 Node: overview1453
 Node: coroutines4756
 Node: event loop23080
-Node: sockets109658
-Node: thread pool113036
-Node: monotonic time134310
-Node: gnome glib135745
-Node: compose175843
-Node: meeting183052
+Node: sockets110791
+Node: thread pool114169
+Node: monotonic time135589
+Node: gnome glib137024
+Node: compose177122
+Node: meeting184331
 
 End Tag Table
