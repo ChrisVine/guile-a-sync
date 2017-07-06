@@ -508,4 +508,18 @@
    throttled-loop)
   
   (event-loop-run! throttled-loop)
+
+  (event-post!
+   (lambda ()
+     (let ((elapsed-millisecs (get-elapsed-millisecs
+			       (let loop ((count 0))
+				 (when (< count 4)
+				   (event-post! 
+				    (lambda () #f)
+				    throttled-loop)
+				   (loop (1+ count)))))))
+       (assert (< elapsed-millisecs 336))))
+   throttled-loop)
+  
+  (event-loop-run! throttled-loop)
   (print-result))
