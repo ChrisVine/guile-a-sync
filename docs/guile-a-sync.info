@@ -1,4 +1,4 @@
-This is guile-a-sync.info, produced by makeinfo version 6.3 from
+This is guile-a-sync.info, produced by makeinfo version 6.4 from
 guile-a-sync.texi.
 
 
@@ -116,16 +116,17 @@ The (a-sync coroutines) module provides the following procedures:
      suspend computation and instead return the value passed to yield,
      if any (yield is a procedure taking no or one argument).  If
      invoked again, the iterator will resume computation at the point
-     where it last left off (returning the value, if any, passed to the
-     iterator on resuming).  When the generator procedure has executed
-     to the end, the iterator returns 'stop-iteration.  This procedure
-     has some resemblance to call/ec, except that (i) instead of
-     executing the passed procedure immediately, it returns an iterator
-     which will do so, (ii) it is resumable, and (iii) the procedure to
-     be executed can receive starting arguments in addition to the
-     yield/break argument, to provide an alternative to binding them
-     with a lambda closure.  It is similar to ECMAScript generators and
-     python generators.
+     where it last left off (the yield procedure returning the value, if
+     any, passed to the iterator on resuming), following which yield may
+     be invoked again, and so on.  When the generator procedure has
+     executed to the end, the iterator returns 'stop-iteration.  This
+     procedure has some resemblance to call/ec, except that (i) instead
+     of executing the passed procedure immediately, it returns an
+     iterator which will do so, (ii) it is resumable, and (iii) the
+     procedure to be executed can receive starting arguments in addition
+     to the yield/break argument, to provide an alternative to binding
+     them with a lambda closure.  It is similar to ECMAScript generators
+     and python generators.
 
  -- Scheme Procedure: make-coroutine proc . args
      This procedure takes a generator procedure, namely a procedure
@@ -3871,12 +3872,12 @@ Tag Table:
 Node: Top85
 Node: overview1453
 Node: coroutines4756
-Node: event loop23080
-Node: sockets110945
-Node: thread pool114323
-Node: monotonic time135743
-Node: gnome glib137178
-Node: compose177276
-Node: meeting184485
+Node: event loop23160
+Node: sockets111025
+Node: thread pool114403
+Node: monotonic time135823
+Node: gnome glib137258
+Node: compose177356
+Node: meeting184565
 
 End Tag Table
