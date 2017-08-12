@@ -761,16 +761,18 @@
 ;;
 ;; Exceptions may propagate out of this procedure if they arise while
 ;; setting up (that is, before the first call to 'await' is made), say
-;; because a regular file is passed to this procedure, memory is
-;; exhausted or a write exception is encountered.  With versions of
-;; this library before 0.13, any exceptions because of write errors
-;; after the first write would propagate out of g-main-loop-run and
-;; could not be caught locally.  Having write exceptions (say, because
-;; of EPIPE) interfering with anything using the main loop in this way
-;; was not a good approach, so from version 0.13 of this library all
-;; write exceptions will propagate in the first instance out of this
-;; procedure so that they may be caught locally, say by putting a
-;; catch expression around the call to this procedure.
+;; because a regular file is passed to this procedure or memory is
+;; exhausted.  In addition, any write error will cause a
+;; 'c-write-error exception to be thrown out of this procedure.  With
+;; versions of this library before 0.13, 'c-write-error exceptions
+;; arising after the first write would propagate out of
+;; g-main-loop-run and could not be caught locally.  Having write
+;; exceptions (say, because of EPIPE) interfering with anything using
+;; the main loop in this way was not a good approach, so from version
+;; 0.13 of this library all write exceptions will propagate in the
+;; first instance out of this procedure so that they may be caught
+;; locally, say by putting a catch expression around the call to this
+;; procedure.
 ;;
 ;; This procedure is first available in version 0.11 of this library.
 (define (await-glib-put-bytevector await resume port bv)
@@ -840,9 +842,10 @@
 ;; Exceptions may propagate out of this procedure if they arise while
 ;; setting up (that is, before the first call to 'await' is made), say
 ;; because a regular file is passed to this procedure, memory is
-;; exhausted, a conversion error arises or a write exception is
-;; encountered.  With versions of this library before 0.13, any
-;; exceptions because of write errors after the first write would
+;; exhausted or a conversion error arises.  In addition, any write
+;; error will cause a 'c-write-error exception to be thrown out of
+;; this procedure.  With versions of this library before 0.13,
+;; 'c-write-error exceptions arising after the first write would
 ;; propagate out of g-main-loop-run and could not be caught locally.
 ;; Having write exceptions (say, because of EPIPE) interfering with
 ;; anything using the main loop in this way was not a good approach,
