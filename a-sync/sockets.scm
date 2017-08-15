@@ -63,13 +63,17 @@
 			  (and (defined? 'EWOULDBLOCK) 
 			       (= EWOULDBLOCK (system-error-errno args))))
 		      (begin
-			(event-loop-add-read-watch! sock
+			;; establish the watch on the file descriptor
+			;; not the port, so that buffering is not
+			;; taken into account
+			(event-loop-add-read-watch! (port->fdes sock)
 						    (lambda (status)
 						      (resume)
 						      #t)
 						    loop)
 			(await)
-			(event-loop-remove-read-watch! sock loop)
+			(event-loop-remove-read-watch! (fileno sock) loop)
+			(release-port-handle sock)
 			'more)
 		      (apply throw args))))))
 	 (if (eq? ret 'more)
@@ -117,13 +121,16 @@
     (lambda args
       (if (= EINPROGRESS (system-error-errno args))
 	  (begin
-	    (event-loop-add-write-watch! sock
+	    ;; establish the watch on the file descriptor not the
+	    ;; port, so that buffering is not taken into account
+	    (event-loop-add-write-watch! (port->fdes sock)
 					 (lambda (status)
 					   (resume)
 					   #t)
 					 loop)
 	    (await)
-	    (event-loop-remove-write-watch! sock loop)
+	    (event-loop-remove-write-watch! (fileno sock) loop)
+	    (release-port-handle sock)
 	    (let ((status (getsockopt sock SOL_SOCKET SO_ERROR)))
 	      (unless (zero? status)
 		;; 'system-error is a guile exception but we can
