@@ -1,4 +1,4 @@
-This is guile-a-sync.info, produced by makeinfo version 6.4 from
+This is guile-a-sync.info, produced by makeinfo version 6.5 from
 guile-a-sync.texi.
 
 
@@ -2517,9 +2517,9 @@ the already accumulated tasks has reduced.
      be called in the same thread as that in which the 'loop' or default
      event loop runs (as the case may be).
 
-     This procedure calls event-post!  in the 'loop' event loop, which
-     could be subject to throttling (see the documentation for the
-     make-event-loop procedure for further information).
+     This procedure calls event-post!  in the 'loop' or default event
+     loop, which could be subject to throttling (see the documentation
+     for the make-event-loop procedure for further information).
 
      Exceptions may propagate out of this procedure if they arise while
      setting up, which shouldn't happen unless the thread pool given by
@@ -2581,9 +2581,9 @@ the already accumulated tasks has reduced.
      called in the same thread as that in which the 'loop' or default
      event loop runs (as the case may be).
 
-     This procedure calls event-post!  in both the 'loop' event loop,
-     which could be subject to throttling (see the documentation for the
-     make-event-loop procedure for further information).
+     This procedure calls event-post!  in the 'loop' or default event
+     loop, which could be subject to throttling (see the documentation
+     for the make-event-loop procedure for further information).
 
      Exceptions may propagate out of this procedure if they arise while
      setting up, which shouldn't happen unless the thread loop given by
@@ -3881,9 +3881,9 @@ Node: coroutines4756
 Node: event loop23160
 Node: sockets111170
 Node: thread pool114548
-Node: monotonic time135968
-Node: gnome glib137403
-Node: compose177646
-Node: meeting184855
+Node: monotonic time135985
+Node: gnome glib137420
+Node: compose177663
+Node: meeting184872
 
 End Tag Table
