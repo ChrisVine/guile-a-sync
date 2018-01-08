@@ -1,4 +1,4 @@
-;; Copyright (C) 2014 to 2017 Chris Vine
+;; Copyright (C) 2014 to 2018 Chris Vine
 
 ;; This library is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU Lesser General Public
