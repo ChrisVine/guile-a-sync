@@ -611,6 +611,11 @@ using event-post!.
      loop.  If event-loop-close!  has previously been invoked, this
      procedure will throw an 'event-loop-error exception.
 
+     From version 0.21, this procedure will also throw an
+     'event-loop-error exception if it is applied to an event loop which
+     is currently running (prior to version 0.21, doing so would fail in
+     a less helpful way).
+
      If something else throws in the implementation or a callback
      throws, then this procedure will clean up the event loop as if
      event-loop-quit!  had been called, and the exception will be
@@ -3879,11 +3884,11 @@ Node: Top85
 Node: overview1453
 Node: coroutines4756
 Node: event loop23160
-Node: sockets111170
-Node: thread pool114548
-Node: monotonic time135985
-Node: gnome glib137420
-Node: compose177663
-Node: meeting184872
+Node: sockets111401
+Node: thread pool114779
+Node: monotonic time136216
+Node: gnome glib137651
+Node: compose177894
+Node: meeting185103
 
 End Tag Table

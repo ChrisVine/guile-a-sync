@@ -112,13 +112,13 @@
   ***default-event-loop***)
 
 (define-record-type <event-loop>
-  (_make-event-loop mutex q done event-in event-out read-files read-files-actions
+  (_make-event-loop mutex q mode event-in event-out read-files read-files-actions
                     write-files write-files-actions timeouts current-timeout block
 		    num-tasks threshold delay loop-thread)
   event-loop?
   (mutex _mutex-get)
   (q _q-get)
-  (done _done-get _done-set!)
+  (mode _mode-get _mode-set!)
   (event-in _event-in-get _event-in-set!)
   (event-out _event-out-get _event-out-set!)
   (read-files _read-files-get _read-files-set!)
@@ -328,6 +328,11 @@
 ;; event-loop-close! has previously been invoked, this procedure will
 ;; throw an 'event-loop-error exception.
 ;;
+;; From version 0.21, this procedure will also throw an
+;; 'event-loop-error exception if it is applied to an event loop which
+;; is currently running (prior to version 0.21, doing so would fail in
+;; a less helpful way).
+;;
 ;; If something else throws in the implementation or a callback
 ;; throws, then this procedure will clean up the event loop as if
 ;; event-loop-quit! had been called, and the exception will be
@@ -349,14 +354,20 @@
   (define write-files-actions #f)
 
   (with-mutex mutex
-    (when (eq? (_done-get el) 'closed)
-      (throw 'event-loop-error
-	     "event-loop-run!"
-	     "event-loop-run! applied to an event loop which has been closed"))
-    (set! event-in (_event-in-get el))
-    (set! event-fd (fileno event-in))
-    (_loop-thread-set! el (current-thread))
-    (_done-set! el #f))
+    (case (_mode-get el)
+      ((closed)
+       (throw 'event-loop-error
+	      "event-loop-run!"
+	      "event-loop-run! applied to an event loop which has been closed"))
+      ((running prepare-to-quit)
+       (throw 'event-loop-error
+	      "event-loop-run!"
+	      "event-loop-run! applied to an event loop which is already running"))
+      (else
+       (set! event-in (_event-in-get el))
+       (set! event-fd (fileno event-in))
+       (_loop-thread-set! el (current-thread))
+       (_mode-set! el 'running))))
 
   (catch
     #t
@@ -459,69 +470,75 @@
 		  (action)
 		  ;; one of the posted events may have called
 		  ;; event-loop-quit!, so test for it
-		  (when (not (with-mutex mutex (_done-get el)))
+		  (when (eq? (with-mutex mutex (_mode-get el)) 'running)
 		    (loop3))))))
-	  (if (not (with-mutex mutex (_done-get el)))
-	      (loop1)
-	      ;; clear out any stale events before returning and
-	      ;; unblocking
-	      (_event-loop-reset! el)))))
+	  (when (eq? (with-mutex mutex (_mode-get el)) 'running)
+	    (loop1))))
+      (with-mutex mutex
+	(let ((mode (_mode-get el)))
+	  ;; if we are here, the loop must have ended either because
+	  ;; (i) the event loop is not set blocking and there are no
+	  ;; further events, watches or timeouts to handle, or (ii)
+	  ;; event-loop-quit! or event-loop-close! have been called.
+	  ;; First, reset the event loop where case (ii) applies.
+	  (when (not (eq? mode 'running))
+	    (_event-loop-reset! el))
+	  ;; now reset the operating mode when not closed
+	  (when (not (eq? mode 'closed))
+	    (_mode-set! el #f)))))
     (lambda args
       ;; something threw, probably a callback.  Put the event loop in
       ;; a valid state and rethrow
-      (_event-loop-reset! el)
-      (apply throw args))))
+      (with-mutex mutex
+	(_event-loop-reset! el)
+	(_mode-set! el #f)
+	(apply throw args)))))
 
 ;; This procedure is only called in the event loop thread, by
-;; event-loop-run!  The only things requiring protection by a mutex
-;; are the q, done-set, event-out, num-tasks and loop-thread fields,
-;; of the event loop object together with the read-files,
-;; read-files-actions, write-files and write-files-actions fields and
-;; port closing.  However, for consistency we deal with all operations
-;; on the event pipe below via the mutex.
+;; event-loop-run!  It must be called while holding the event loop
+;; mutex.
 (define (_event-loop-reset! el)
   ;; the only foolproof way of vacating a unix pipe is to close it and
   ;; then create another one
-  (with-mutex (_mutex-get el)
-    ;; discard any EAGAIN exception when flushing the output buffer
-    ;; of a fully filled pipe on closing
-    (catch 'system-error
-      (lambda ()
-    	(close-port (_event-out-get el)))
-      (lambda args
-    	(unless (= EAGAIN (system-error-errno args))
-    	  (apply throw args))))
-    (close-port (_event-in-get el))
+
+  ;; discard any EAGAIN exception when flushing the output buffer
+  ;; of a fully filled pipe on closing
+  (catch 'system-error
+    (lambda ()
+      (close-port (_event-out-get el)))
+    (lambda args
+      (unless (= EAGAIN (system-error-errno args))
+	(apply throw args))))
+  (close-port (_event-in-get el))
     
-    ;; we can enter this procedure with:
-    ;; - 'done' unset, in which case there has been an exception in
-    ;;   event-loop-run!
-    ;; - 'done' set to 'prepare-to-quit, in which case
-    ;;   event-loop-quit! has been called
-    ;; - 'done' set to 'closed, in which case event-loop-close! has
-    ;;   been called
-    (when (not (eq? (_done-get el) 'closed))
-      (_done-set! el 'quit)
-      (let* ((event-pipe (pipe))
-	     (in (car event-pipe))
-	     (out (cdr event-pipe)))
-	(fcntl out F_SETFL (logior O_NONBLOCK
-				   (fcntl out F_GETFL)))
-	(_event-in-set! el in)
-	(_event-out-set! el out)))
-    (let ((q (_q-get el)))
-      (let loop ()
-	(when (not (q-empty? q))
-	  (deq! q)
-	  (loop))))
-    (_num-tasks-set! el 0)
-    (_loop-thread-set! el #f)
-    (_read-files-set! el '())
-    (hashtable-clear! (_read-files-actions-get el))
-    (_write-files-set! el '())
-    (hashtable-clear! (_write-files-actions-get el))
-    (_timeouts-set! el '())
-    (_current-timeout-set! el #f)))
+  ;; we can enter this procedure with:
+  ;; - 'mode' set to 'running, in which case there has been an
+  ;;   exception in event-loop-run!
+  ;; - 'mode' set to 'prepare-to-quit, in which case event-loop-quit!
+  ;;   has been called
+  ;; - 'mode' set to 'closed, in which case event-loop-close! has been
+  ;;   called
+  (when (not (eq? (_mode-get el) 'closed))
+    (let* ((event-pipe (pipe))
+	   (in (car event-pipe))
+	   (out (cdr event-pipe)))
+      (fcntl out F_SETFL (logior O_NONBLOCK
+				 (fcntl out F_GETFL)))
+      (_event-in-set! el in)
+      (_event-out-set! el out)))
+  (let ((q (_q-get el)))
+    (let loop ()
+      (when (not (q-empty? q))
+	(deq! q)
+	(loop))))
+  (_num-tasks-set! el 0)
+  (_loop-thread-set! el #f)
+  (_read-files-set! el '())
+  (hashtable-clear! (_read-files-actions-get el))
+  (_write-files-set! el '())
+  (hashtable-clear! (_write-files-actions-get el))
+  (_timeouts-set! el '())
+  (_current-timeout-set! el #f))
 
 ;; The 'el' (event loop) argument is optional.  This procedure will
 ;; start a read watch in the event loop passed in as an argument, or
@@ -556,7 +573,7 @@
       ;; given the possible permutations, it is too violent to throw
       ;; an exception at this point if the event loop has been closed:
       ;; instead defer the exception to the call to event-loop-run!
-      (when (not (eq? (_done-get el) 'closed))
+      (when (not (eq? (_mode-get el) 'closed))
 	(_read-files-set! el (cons file (delete! file (_read-files-get el) _file-equal?)))
 	(hashtable-set! (_read-files-actions-get el) (_fd-or-port->fd file) proc)
 	(let ((out (_event-out-get el)))
@@ -620,7 +637,7 @@
       ;; given the possible permutations, it is too violent to throw
       ;; an exception at this point if the event loop has been closed:
       ;; instead defer the exception to the call to event-loop-run!
-      (when (not (eq? (_done-get el) 'closed))
+      (when (not (eq? (_mode-get el) 'closed))
 	(_write-files-set! el (cons file (delete! file (_write-files-get el) _file-equal?)))
 	(hashtable-set! (_write-files-actions-get el) (_fd-or-port->fd file) proc)
 	(let ((out (_event-out-get el)))
@@ -651,7 +668,7 @@
     (when (not el) 
       (error "No default event loop set for call to event-loop-remove-read-watch!"))
     (with-mutex (_mutex-get el)
-      (when (not (eq? (_done-get el) 'closed))
+      (when (not (eq? (_mode-get el) 'closed))
 	(_remove-read-watch-impl! file el)
 	(let ((out (_event-out-get el)))
 	  ;; if the event pipe is full and an EAGAIN error arises, we
@@ -681,7 +698,7 @@
     (when (not el) 
       (error "No default event loop set for call to event-loop-remove-write-watch!"))
     (with-mutex (_mutex-get el)
-      (when (not (eq? (_done-get el) 'closed))
+      (when (not (eq? (_mode-get el) 'closed))
 	(_remove-write-watch-impl! file el)
 	(let ((out (_event-out-get el)))
 	  ;; if the event pipe is full and an EAGAIN error arises, we
@@ -723,7 +740,7 @@
     ;; instead defer the exception to the call to event-loop-run!
     (let ((closed
 	   (with-mutex (_mutex-get el)
-	     (if (eq? (_done-get el) 'closed)
+	     (if (eq? (_mode-get el) 'closed)
 		 #t
 		 (begin
 		   (enq! (_q-get el) action)
@@ -840,7 +857,7 @@
       ;; an exception at this point if the event loop has been
       ;; closed: instead defer the exception to the call to
       ;; event-loop-run!
-      (when (not (eq? (_done-get el) 'closed))
+      (when (not (eq? (_mode-get el) 'closed))
 	(let ((old-val (_block-get el)))
 	  (_block-set! el (not (not val)))
 	  (when (and old-val (not val))
@@ -889,8 +906,8 @@
       ;; an exception at this point if the event loop has been
       ;; closed: instead defer the exception to the call to
       ;; event-loop-run!
-      (when (not (eq? (_done-get el) 'closed))
-	(_done-set! el 'prepare-to-quit)
+      (when (not (eq? (_mode-get el) 'closed))
+	(_mode-set! el 'prepare-to-quit)
 	;; if the event pipe is full and an EAGAIN error arises, we
 	;; can just swallow it.  The only purpose of writing #\x is to
 	;; cause the select procedure to return
@@ -941,14 +958,14 @@
     (when (not el) 
       (error "No default event loop set for call to event-loop-close!"))
     (with-mutex (_mutex-get el)
-      (let ((status (_done-get el)))
+      (let ((mode (_mode-get el)))
 	(cond
-	 ((eq? status 'closed)
+	 ((eq? mode 'closed)
 	  ;; this procedure applied before
 	  #f)
-	 ((eq? status 'quit)
+	 ((eq? mode #f)
 	  ;; loop no longer running - just close the pipe ports
-	  (_done-set! el 'closed)
+	  (_mode-set! el 'closed)
 	  ;; discard any EAGAIN exception when flushing the output
 	  ;; buffer of a fully filled pipe on closing
 	  (catch 'system-error
@@ -958,13 +975,13 @@
 	      (unless (= EAGAIN (system-error-errno args))
 		(apply throw args))))
 	  (close-port (_event-in-get el)))
-	 ((eq? status 'prepare-to-quit)
+	 ((eq? mode 'prepare-to-quit)
 	  ;; loop still running but event-loop-quit! already called
 	  ;; and event-loop-reset! about to execute
-	  (_done-set! el 'closed))
+	  (_mode-set! el 'closed))
 	 (else
 	  ;; loop still running normally
-	  (_done-set! el 'closed)
+	  (_mode-set! el 'closed)
 	  ;; if the event pipe is full and an EAGAIN error arises, we can
 	  ;; just swallow it.  The only purpose of writing #\x is to cause
 	  ;; the select procedure to return
