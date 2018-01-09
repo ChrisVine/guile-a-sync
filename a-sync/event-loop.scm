@@ -491,7 +491,8 @@
       ;; a valid state and rethrow
       (with-mutex mutex
 	(_event-loop-reset! el)
-	(_mode-set! el #f)
+	(when (not (eq? (_mode-get el) 'closed))
+	  (_mode-set! el #f))
 	(apply throw args)))))
 
 ;; This procedure is only called in the event loop thread, by
