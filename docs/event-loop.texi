@@ -40,21 +40,21 @@ it is best if this situation is retained by user code.
 
 Where a file watch on a file descriptor or port has been added with
 event-loop-add-read-watch! or event-loop-add-write-watch!, the event
-loop should be treated as owning the status of the descriptor or port
-until it has subsequently been removed with
-event-loop-remove-read-watch! or event-loop-remove-write-watch!.  In
-particular, if the watch is on a port, an error in the fileno
-procedure will arise at some point if the port is closed (say by
-calling close, close-port, close-input-port or close-output-port)
-before its watch has been removed from the event loop; if the watch is
-on a file descriptor and the descriptor value is reused by the
-operating system, there may be a phantom watch on the new descriptor.
-Also note that if a worker thread other than the event loop thread
-removes the watch and immediately follows it with a close of the port
-or descriptor, the file watch callback may be called once in
-consequence, so in such a case either the callback should be ready to
-handle a possibly closed port or descriptor or the worker thread
-should post the closing as an event using event-post!.
+loop should be treated as owning the descriptor or port until it has
+subsequently been removed with event-loop-remove-read-watch! or
+event-loop-remove-write-watch!.  In particular, if the watch is on a
+port, an error in the fileno or select procedures will arise at some
+point if the port is closed (say by calling close, close-port,
+close-input-port or close-output-port) before its watch has been
+removed from the event loop; if the watch is on a file descriptor and
+the descriptor value is reused by the operating system, there may be a
+phantom watch on the new descriptor.  Also note that, where a watch on
+a port has just been removed, it is usually undesirable to close the
+port in a different thread than the event loop thread because there is
+no easy way of synchronizing the threads at that point.  If it is
+necessary for a worker thread to close a port after removing the
+watch, one approach is for the thread to post the closing as an event
+using event-post!.
 
 This module provides the following procedures:
 
