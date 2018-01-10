@@ -19,7 +19,7 @@
   #:use-module (ice-9 match)
   #:use-module (ice-9 threads)         ;; for with-mutex and call-with-new-thread
   #:use-module (ice-9 control)         ;; for call/ec
-  #:use-module (srfi srfi-1)           ;; for reduce, delete!, member and delete-duplicates
+  #:use-module (srfi srfi-1)           ;; for reduce, delete, member and delete-duplicates
   #:use-module (srfi srfi-9)
   #:use-module (rnrs bytevectors)      ;; for make-bytevector, bytevector-copy!, bytevector-u8-ref
   #:use-module (rnrs hashtables)       ;; for make-eqv-hashtable, etc
@@ -287,7 +287,7 @@
 ;; descriptor, or two ports with the same underlying file descriptor,
 ;; compare equal for the purposes of removal.
 (define (_remove-read-watch-impl! file el)
-  (_read-files-set! el (delete! file (_read-files-get el) _file-equal?))
+  (_read-files-set! el (delete file (_read-files-get el) _file-equal?))
   (hashtable-delete! (_read-files-actions-get el)
 		     (_fd-or-port->fd file)))
 
@@ -297,7 +297,7 @@
 ;; descriptor, or two ports with the same underlying file descriptor,
 ;; compare equal for the purposes of removal.
 (define (_remove-write-watch-impl! file el)
-  (_write-files-set! el (delete! file (_write-files-get el) _file-equal?))
+  (_write-files-set! el (delete file (_write-files-get el) _file-equal?))
   (hashtable-delete! (_write-files-actions-get el)
 		     (_fd-or-port->fd file)))
 
@@ -349,9 +349,7 @@
   (define event-in #f)
   (define event-fd #f)
   (define read-files #f)
-  (define read-files-actions #f)
   (define write-files #f)
-  (define write-files-actions #f)
 
   (with-mutex mutex
     (case (_mode-get el)
@@ -379,12 +377,11 @@
 	;; event loop thread
 	(_process-timeouts el)
 	;; we must assign these under a mutex so that we get a
-	;; consistent view on each run
+	;; consistent view of them on each run: the lists themselves
+	;; are not mutated (their associated actions may be)
 	(with-mutex mutex
 	  (set! read-files (_read-files-get el))
-	  (set! read-files-actions (_read-files-actions-get el))
-	  (set! write-files (_write-files-get el))
-	  (set! write-files-actions (_write-files-actions-get el)))
+	  (set! write-files (_write-files-get el)))
 
 	(when (not (and (null? read-files)
 			(null? write-files)
@@ -406,39 +403,40 @@
 			      (apply throw args))))))
 	    (for-each (lambda (elt)
 			(let ((action
-			       (hashtable-ref read-files-actions
-					      (_fd-or-port->fd elt)
-					      #f)))
-			  (if action
-			      (when (not (action 'in))
-				(with-mutex mutex (_remove-read-watch-impl! elt el)))
-			      (error "No action in event loop for read file: " elt))))
+			       (with-mutex mutex
+				 (hashtable-ref (_read-files-actions-get el)
+						(_fd-or-port->fd elt)
+						#f))))
+			  ;; if the action has been concurrently removed, ignore it
+			  (when (and action (not (action 'in)))
+			    (with-mutex mutex (_remove-read-watch-impl! elt el)))))
 		      (delv event-fd (car res)))
 	    (for-each (lambda (elt)
 			(let ((action
-			       (hashtable-ref write-files-actions
-					      (_fd-or-port->fd elt)
-					      #f)))
-			  (if action
-			      (when (not (action 'out))
-				(with-mutex mutex (_remove-write-watch-impl! elt el)))
-			      (error "No action in event loop for write file: " elt))))
+			       (with-mutex mutex
+				 (hashtable-ref (_write-files-actions-get el)
+						(_fd-or-port->fd elt)
+						#f))))
+			  ;; if the action has been concurrently removed, ignore it
+			  (when (and action (not (action 'out)))
+			    (with-mutex mutex (_remove-write-watch-impl! elt el)))))
 		      (cadr res))
 	    (for-each (lambda (elt)
 			(let ((action
-			       (or (hashtable-ref read-files-actions
-						  (_fd-or-port->fd elt)
-						  #f)
-				   (hashtable-ref write-files-actions
-						  (_fd-or-port->fd elt)
-						  #f))))
-			  (if action
-			      (when (not (action 'excpt))
-				(if (member elt read-files _file-equal?)
-				    (with-mutex mutex 
-				      (_remove-read-watch-impl! elt el)
-				      (_remove-write-watch-impl! elt el))))
-			      (error "No action in event loop for file: " elt))))
+			       (with-mutex mutex
+				 (or (hashtable-ref (_read-files-actions-get el)
+						    (_fd-or-port->fd elt)
+						    #f)
+				     (hashtable-ref (_write-files-actions-get el)
+						    (_fd-or-port->fd elt)
+						    #f)))))
+			  ;; if the action has been concurrently removed, ignore it
+			  (when (and action (not (action 'excpt)))
+			    (if (member elt read-files _file-equal?)
+				(with-mutex mutex
+				  (_remove-read-watch-impl! elt el))
+				(with-mutex mutex
+				  (_remove-write-watch-impl! elt el))))))
 		      (caddr res))
 	    ;; the strategy with posted events is first to empty the
 	    ;; event pipe (the only purpose of which is to cause the
@@ -575,7 +573,7 @@
       ;; an exception at this point if the event loop has been closed:
       ;; instead defer the exception to the call to event-loop-run!
       (when (not (eq? (_mode-get el) 'closed))
-	(_read-files-set! el (cons file (delete! file (_read-files-get el) _file-equal?)))
+	(_read-files-set! el (cons file (delete file (_read-files-get el) _file-equal?)))
 	(hashtable-set! (_read-files-actions-get el) (_fd-or-port->fd file) proc)
 	(let ((out (_event-out-get el)))
 	  ;; if the event pipe is full and an EAGAIN error arises, we
@@ -639,7 +637,7 @@
       ;; an exception at this point if the event loop has been closed:
       ;; instead defer the exception to the call to event-loop-run!
       (when (not (eq? (_mode-get el) 'closed))
-	(_write-files-set! el (cons file (delete! file (_write-files-get el) _file-equal?)))
+	(_write-files-set! el (cons file (delete file (_write-files-get el) _file-equal?)))
 	(hashtable-set! (_write-files-actions-get el) (_fd-or-port->fd file) proc)
 	(let ((out (_event-out-get el)))
 	  ;; if the event pipe is full and an EAGAIN error arises, we
