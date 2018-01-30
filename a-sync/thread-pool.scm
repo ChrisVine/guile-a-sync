@@ -519,14 +519,14 @@
 ;; This procedure adds a new task to the thread pool.  'task' must be
 ;; a thunk.  If one or more threads in the pool are currently blocking
 ;; and waiting for a task, then the task will begin executing
-;; immediately in one of the threads.  If not, and the the number of
+;; immediately in one of the threads.  If not, and the number of
 ;; threads running in the pool is less than the value returned by
 ;; thread-pool-get-max-threads, a new thread will start and the task
 ;; will execute immediately in the new thread.  Otherwise, the task
 ;; will be queued for execution as soon as a thread becomes available.
-;; Tasks will be executed in the order in which they are added to the
-;; thread pool object.  This procedure is thread safe (any thread may
-;; call it, including any task running on the thread pool object).
+;; Tasks will begin execution in the order in which they are added to
+;; the thread pool object.  This procedure is thread safe (any thread
+;; may call it, including any task running on the thread pool object).
 ;;
 ;; An optional handler procedure may be passed to 'fail-handler' which
 ;; will be invoked if the task throws an exception.  If a task throws
