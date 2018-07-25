@@ -169,6 +169,16 @@
      (let* ((event-pipe (pipe))
 	    (in (car event-pipe))
 	    (out (cdr event-pipe)))
+       ;; setting FD_CLOEXEC creates the traditional race if another
+       ;; thread is running in the program and it might exec
+       ;; concurrently with the creation of the event loop in this
+       ;; thread, but that doesn't really matter - having a child
+       ;; process sharing the descriptor for an unnamed pipe it has no
+       ;; access to isn't really a problem in such cases.
+       (fcntl in F_SETFD (logior FD_CLOEXEC
+				 (fcntl in F_GETFD)))
+       (fcntl out F_SETFD (logior FD_CLOEXEC
+				  (fcntl out F_GETFD)))
        ;; the write end of the pipe needs to be set non-blocking so
        ;; that if the pipe fills and the event loop thread is also
        ;; putting a new event in the queue, an exception is thrown
@@ -521,6 +531,16 @@
     (let* ((event-pipe (pipe))
 	   (in (car event-pipe))
 	   (out (cdr event-pipe)))
+      ;; setting FD_CLOEXEC creates the traditional race if another
+      ;; thread is running in the program and it might exec
+      ;; concurrently with the resetting of the event loop in this
+      ;; thread, but that doesn't really matter - having a child
+      ;; process sharing the descriptor for an unnamed pipe it has no
+      ;; access to isn't really a problem in such cases.
+      (fcntl in F_SETFD (logior FD_CLOEXEC
+				(fcntl in F_GETFD)))
+      (fcntl out F_SETFD (logior FD_CLOEXEC
+				 (fcntl out F_GETFD)))
       (fcntl out F_SETFL (logior O_NONBLOCK
 				 (fcntl out F_GETFL)))
       (_event-in-set! el in)
