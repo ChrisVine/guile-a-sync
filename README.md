@@ -13,13 +13,12 @@ control (aka "callback hell").
 See the documentation mentioned below for further details, and the
 docs/example.scm and docs/example-glib.scm files.
 
-A separate guile-a-sync2 library is available for guile-2.1/2.2 (from
-guile version 2.1.3 onwards) here:
-https://github.com/ChrisVine/guile-a-sync2 .  This library and
-guile-a-sync2 are parallel installable.  Where a program is to be
-heavily i/o based, say it is based on sockets, and guile-2.1/2.2 is
-available, guile-a-sync2 is recommended as it makes use of guile's new
-suspendable ports (available from version 2.1.3), which are very nice.
+A separate guile-a-sync2 library is available for guile-2.2 and
+guile-3.0 here: https://github.com/ChrisVine/guile-a-sync2 .  This
+library and guile-a-sync2 are parallel installable.  Where a program
+is to be heavily i/o based, say it is based on sockets, and
+guile-2.2/3.0 is available, guile-a-sync2 is recommended as it makes
+use of guile's suspendable ports.
 
 Installation
 ------------
