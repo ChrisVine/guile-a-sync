@@ -925,19 +925,20 @@
       ;; an exception at this point if the event loop has been
       ;; closed: instead defer the exception to the call to
       ;; event-loop-run!
-      (when (not (eq? (_mode-get el) 'closed))
-	(_mode-set! el 'prepare-to-quit)
-	;; if the event pipe is full and an EAGAIN error arises, we
-	;; can just swallow it.  The only purpose of writing #\x is to
-	;; cause the select procedure to return
-	(let ((out (_event-out-get el)))
-	  (catch 'system-error
-	    (lambda ()
-	      (write-char #\x out)
-	      (force-output out))
-	    (lambda args
-	      (unless (= EAGAIN (system-error-errno args))
-		(apply throw args)))))))))
+      (let ((mode (_mode-get el)))
+	(when (and mode (not (eq? mode 'closed)))
+	  (_mode-set! el 'prepare-to-quit)
+	  ;; if the event pipe is full and an EAGAIN error arises, we
+	  ;; can just swallow it.  The only purpose of writing #\x is
+	  ;; to cause the select procedure to return
+	  (let ((out (_event-out-get el)))
+	    (catch 'system-error
+	      (lambda ()
+		(write-char #\x out)
+		(force-output out))
+	      (lambda args
+		(unless (= EAGAIN (system-error-errno args))
+		  (apply throw args))))))))))
 
 ;; This procedure closes an event loop.  Like event-loop-quit!, if the
 ;; loop is still running it causes the event loop to unblock, and any
