@@ -325,6 +325,7 @@ The (a-sync coroutines) module provides the following procedures:
      or this, to loop asynchronously with a series of results:
 
           (set-default-event-loop!) ;; if none has yet been set
+          (event-loop-block! #t) ;; worker thread in operation
           (a-sync (lambda (await resume)
           	  ;; executing task in event loop thread
           	  (let loop ((count 0))
@@ -354,7 +355,6 @@ The (a-sync coroutines) module provides the following procedures:
           		(display res)(newline)
           		(loop))))
           	  (event-loop-block! #f)))
-          (event-loop-block! #t) ;; worker thread in operation
           (event-loop-run!)
 
      Or better, for many use cases when composing on the event loop from
@@ -397,6 +397,7 @@ The (a-sync coroutines) module provides the following procedures:
      or this, to loop asynchronously with a series of results:
 
           (set-default-event-loop!) ;; if none has yet been set
+          (event-loop-block! #t) ;; worker thread in operation
           (a-sync (lambda (await resume)
           	  (await-generator! await resume
           			    (lambda (yield)
@@ -417,7 +418,6 @@ The (a-sync coroutines) module provides the following procedures:
           					(display val)
           					(newline)))
           	  (event-loop-block! #f)))
-          (event-loop-block! #t) ;; worker thread in operation
           (event-loop-run!)
 
      Or the compose-a-sync macro in the *note compose: compose. module
@@ -450,6 +450,7 @@ The (a-sync coroutines) module provides the following procedures:
      or this, to loop asynchronously with a series of results:
 
           (set-default-event-loop!) ;; if none has yet been set
+          (event-loop-block! #t) ;; worker thread in operation
           (compose-a-sync ()
           		(await-generator! (lambda (yield)
           				    (let loop ((count 0))
@@ -468,7 +469,6 @@ The (a-sync coroutines) module provides the following procedures:
           					      (display val)
           					      (newline)))
           		((no-await (event-loop-block! #f))))
-          (event-loop-block! #t) ;; worker thread in operation
           (event-loop-run!)
 
      The a-sync procedure can be used with any event loop, including the
@@ -794,15 +794,22 @@ event-post!.
      exhausted.
 
  -- Scheme Procedure: event-loop-quit! [loop]
-     This procedure causes an event loop to unblock.  Any file watches,
-     timeouts or posted events remaining in the event loop will be
-     discarded.  New file watches, timeouts and events may subsequently
-     be added or posted after event-loop-run!  has unblocked and
-     event-loop-run!  then called for them.  This is thread safe - any
-     thread may call this procedure, including any callback or task
-     running on the event loop.  The 'loop' argument is optional: this
-     procedure operates on the event loop passed in as an argument, or
-     if none is passed (or #f is passed), on the default event loop.
+     This procedure causes an event loop to end and event-loop-run!  to
+     return.  Any file watches, timeouts or posted events remaining in
+     the event loop will be discarded.  New file watches, timeouts and
+     events may subsequently be added or posted after event-loop-run!
+     has returned, and event-loop-run!  then called for them.  This is
+     thread safe - any thread may call this procedure, including any
+     callback or task running on the event loop.  The 'loop' argument is
+     optional: this procedure operates on the event loop passed in as an
+     argument, or if none is passed (or #f is passed), on the default
+     event loop.  Applying this procedure to an event loop does not
+     change the blocking status of the loop as may previously have been
+     set by event-loop-block!, should event-loop-run!  be applied to it
+     again.
+
+     Applying this procedure to an event loop has no effect if the event
+     loop is not actually running.
 
      Note that the discarding of file watches, timeouts and unexecuted
      events remaining in the event loop means that if one of the helper
@@ -890,13 +897,13 @@ event-post!.
 
      Here is an example of the use of await-task-in-thread!:
           (set-default-event-loop!) ;; if none has yet been set
+          (event-loop-block! #t) ;; because the task runs in another thread
           (a-sync (lambda (await resume)
           	  (simple-format #t "1 + 1 is ~A\n"
           			 (await-task-in-thread! await resume
           						(lambda ()
           						  (+ 1 1))))
-          	  (event-loop-quit!)))
-          (event-loop-block! #t) ;; because the task runs in another thread
+          	  (event-loop-block! #f)))
           (event-loop-run!)
 
  -- Scheme Procedure: await-task-in-event-loop! await resume [waiter]
@@ -1102,6 +1109,7 @@ event-post!.
 
      Here is an example of the use of await-generator-in-thread!:
           (set-default-event-loop!) ;; if none has yet been set
+          (event-loop-block! #t) ;; because the generator runs in another thread
           (a-sync (lambda (await resume)
                     (await-generator-in-thread! await resume
           				      (lambda (yield)
@@ -1113,7 +1121,6 @@ event-post!.
           					(display val)
           					(newline)))
           	  (event-loop-block! #f)))
-          (event-loop-block! #t) ;; because the generator runs in another thread
           (event-loop-run!)
 
  -- Scheme Procedure: await-generator-in-event-loop! await resume
@@ -2537,14 +2544,14 @@ the already accumulated tasks has reduced.
      Here is an example of the use of await-task-in-thread-pool!:
           (set-default-event-loop!) ;; if none has yet been set
           (let ((pool (make-thread-pool #:max-threads 4)))
+            (event-loop-block! #t) ;; because the task runs in another thread
             (a-sync (lambda (await resume)
           	    (simple-format #t "1 + 1 is ~A\n"
           			   (await-task-in-thread-pool! await resume
           						       pool
           						       (lambda ()
           							 (+ 1 1))))
-          	    (event-loop-quit!))))
-          (event-loop-block! #t) ;; because the task runs in another thread
+          	    (event-loop-block! #f))))
           (event-loop-run!)
      This procedure is first available in version 0.18 of this library.
 
@@ -2603,6 +2610,7 @@ the already accumulated tasks has reduced.
      Here is an example of the use of await-generator-in-thread-pool!:
           (set-default-event-loop!) ;; if none has yet been set
           (let ((pool (make-thread-pool #:max-threads 4)))
+            (event-loop-block! #t) ;; because the generator runs in another thread
             (a-sync (lambda (await resume)
           	    (await-generator-in-thread-pool! await resume
           					     pool
@@ -2615,7 +2623,6 @@ the already accumulated tasks has reduced.
           					       (display val)
           					       (newline)))
           	    (event-loop-block! #f))))
-          (event-loop-block! #t) ;; because the generator runs in another thread
           (event-loop-run!)
      This procedure is first available in version 0.18 of this library.
 
@@ -3885,11 +3892,11 @@ Node: Top85
 Node: overview1453
 Node: coroutines4756
 Node: event loop23160
-Node: sockets111403
-Node: thread pool114781
-Node: monotonic time136218
-Node: gnome glib137653
-Node: compose177896
-Node: meeting185221
+Node: sockets111754
+Node: thread pool115132
+Node: monotonic time136577
+Node: gnome glib138012
+Node: compose178255
+Node: meeting185580
 
 End Tag Table

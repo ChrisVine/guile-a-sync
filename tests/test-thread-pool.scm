@@ -273,6 +273,7 @@
 (define main-loop (make-event-loop))
 
 (let ((pool (make-thread-pool)))
+  (event-loop-block! #t main-loop)
   (a-sync (lambda (await resume)
 	    (let ((res
 		   (await-task-in-thread-pool! await resume main-loop pool
@@ -281,15 +282,15 @@
 	      (test-result 15 res)
 	      (test-result 1 (thread-pool-get-num-threads pool))
 	      (print-result)
-	      (event-loop-quit! main-loop))))
-  (event-loop-block! #t main-loop)
+	      (event-loop-quit! main-loop)
+	      (event-loop-block! #f main-loop))))
   (event-loop-run! main-loop)
-  (event-loop-block! #f main-loop)
   (thread-pool-stop! pool))
-		    
+
 ;; Test 10: await-task-in-thread-pool! with handler
 
 (let ((pool (make-thread-pool)))
+  (event-loop-block! #t main-loop)
   (a-sync (lambda (await resume)
 	    (let ((res
 		   (await-task-in-thread-pool!
@@ -301,16 +302,16 @@
 	      (test-result 5 res)
 	      (test-result 1 (thread-pool-get-num-threads pool))
 	      (print-result)
-	      (event-loop-quit! main-loop))))
-  (event-loop-block! #t main-loop)
+	      (event-loop-quit! main-loop)
+	      (event-loop-block! #f main-loop))))
   (event-loop-run! main-loop)
-  (event-loop-block! #f main-loop)
   (thread-pool-stop! pool))
 
 ;; Test 11: await-generator-in-thread-pool! without handler
 
 (let ((pool (make-thread-pool))
       (lst '()))
+  (event-loop-block! #t main-loop)
   (a-sync (lambda (await resume)
 	    (let ((res
 		   (await-generator-in-thread-pool! await resume main-loop pool
@@ -327,7 +328,6 @@
 	      (test-result 1 (thread-pool-get-num-threads pool))
 	      (print-result)
 	      (event-loop-block! #f main-loop))))
-  (event-loop-block! #t main-loop)
   (event-loop-run! main-loop)
   (thread-pool-stop! pool))
 
@@ -335,6 +335,7 @@
 
 (let ((pool (make-thread-pool))
       (lst '()))
+  (event-loop-block! #t main-loop)
   (a-sync (lambda (await resume)
 	    (let ((res
 		   (await-generator-in-thread-pool! await resume main-loop pool
@@ -363,7 +364,6 @@
 	      (test-result 1 (thread-pool-get-num-threads pool))
 	      (print-result)
 	      (event-loop-block! #f main-loop))))
-  (event-loop-block! #t main-loop)
   (event-loop-run! main-loop)
   (thread-pool-stop! pool))
 
@@ -375,6 +375,7 @@
 ;; Test 13: await-task-in-thread-pool! without handler
 
 (let ((pool (make-thread-pool)))
+  (event-loop-block! #t)
   (a-sync (lambda (await resume)
 	    (let ((res
 		   (await-task-in-thread-pool! await resume pool
@@ -383,15 +384,15 @@
 	      (test-result 15 res)
 	      (test-result 1 (thread-pool-get-num-threads pool))
 	      (print-result)
-	      (event-loop-quit!))))
-  (event-loop-block! #t)
+	      (event-loop-quit!)
+	      (event-loop-block! #f))))
   (event-loop-run!)
-  (event-loop-block! #f)
   (thread-pool-stop! pool))
 		    
 ;; Test 14: await-task-in-thread-pool! with handler
 
 (let ((pool (make-thread-pool)))
+  (event-loop-block! #t)
   (a-sync (lambda (await resume)
 	    (let ((res
 		   (await-task-in-thread-pool!
@@ -403,16 +404,16 @@
 	      (test-result 5 res)
 	      (test-result 1 (thread-pool-get-num-threads pool))
 	      (print-result)
-	      (event-loop-quit!))))
-  (event-loop-block! #t)
+	      (event-loop-quit!)
+	      (event-loop-block! #f))))
   (event-loop-run!)
-  (event-loop-block! #f)
   (thread-pool-stop! pool))
 
 ;; Test 15: await-generator-in-thread-pool! without handler
 
 (let ((pool (make-thread-pool))
       (lst '()))
+  (event-loop-block! #t)
   (a-sync (lambda (await resume)
 	    (let ((res
 		   (await-generator-in-thread-pool! await resume pool
@@ -429,7 +430,6 @@
 	      (test-result 1 (thread-pool-get-num-threads pool))
 	      (print-result)
 	      (event-loop-block! #f))))
-  (event-loop-block! #t)
   (event-loop-run!)
   (thread-pool-stop! pool))
 
@@ -437,6 +437,7 @@
 
 (let ((pool (make-thread-pool))
       (lst '()))
+  (event-loop-block! #t)
   (a-sync (lambda (await resume)
 	    (let ((res
 		   (await-generator-in-thread-pool! await resume pool
@@ -465,7 +466,6 @@
 	      (test-result 1 (thread-pool-get-num-threads pool))
 	      (print-result)
 	      (event-loop-block! #f))))
-  (event-loop-block! #t)
   (event-loop-run!)
   (thread-pool-stop! pool))
 
