@@ -1948,7 +1948,7 @@ event-post!.
      This is a convenience procedure for use in an event loop, which
      will start a write watch on 'port' for writing the contents of a
      bytevector 'bv' to the port, which must be non-blocking.  It calls
-     'await' while waiting for output to become available.  Provided
+     'await' if it has to wait for output to become available.  Provided
      'port' is a non-blocking port, the event loop will not be blocked
      by this procedure even if only individual bytes can be written at
      any one time.  It is intended to be called within a waitable
@@ -2019,6 +2019,12 @@ event-post!.
           			 (apply throw key args)))))))
           (event-loop-run!)
 
+     Unlike the other await-* procedures in this module,
+     await-put-bytevector!  and await-put-string!  will not call 'await'
+     if all the contents of the bytevector/string can be written
+     immediately: instead, after writing this procedure would return
+     straight away without invoking the event loop.
+
      This procedure is first available in version 0.11 of this library.
 
      An example of the use of await-put-string!, which is implemented
@@ -2028,13 +2034,13 @@ event-post!.
  -- Scheme Procedure: await-put-string! await resume [loop] port text
      This is a convenience procedure for use in an event loop, which
      will start a write watch on 'port' for writing a string to the
-     port, which must be non-blocking.  It calls 'await' while waiting
-     for output to become available.  Provided 'port' is a non-blocking
-     port, the event loop will not be blocked by this procedure even if
-     only individual characters or part characters can be written at any
-     one time.  It is intended to be called within a waitable procedure
-     invoked by a-sync (which supplies the 'await' and 'resume'
-     arguments), and this procedure is implemented using
+     port, which must be non-blocking.  It calls 'await' if it has to
+     wait for output to become available.  Provided 'port' is a
+     non-blocking port, the event loop will not be blocked by this
+     procedure even if only individual characters or part characters can
+     be written at any one time.  It is intended to be called within a
+     waitable procedure invoked by a-sync (which supplies the 'await'
+     and 'resume' arguments), and this procedure is implemented using
      await-put-bytevector!.  If an exceptional condition ('excpt) is
      encountered, #f will be returned, otherwise #t will be returned
      (but an exceptional condition should never be encountered on an
@@ -2113,6 +2119,12 @@ event-post!.
      the '\r' character (as well as the '\n' character) must be embedded
      in the string.
 
+     Unlike the other await-* procedures in this module,
+     await-put-bytevector!  and await-put-string!  will not call 'await'
+     if all the contents of the bytevector/string can be written
+     immediately: instead, after writing this procedure would return
+     straight away without invoking the event loop.
+
      This procedure is first available in version 0.10 of this library.
 
      An example of the use of this procedure can be found in the
@@ -2188,6 +2200,11 @@ procedures for sockets.
      caught locally (say by putting a catch expression around the call
      to this procedure).
 
+     This procedure will not call 'await' if a connection is immediately
+     available to be accepted without waiting: instead, after accepting
+     the connection this procedure would return straight away without
+     invoking the event loop.
+
      This procedure is first available in version 0.12 of this library.
 
  -- Scheme Procedure: await-connect! await resume [loop] sock . args
@@ -2219,6 +2236,10 @@ procedures for sockets.
      Subsequent exceptions will propagate out of event-loop-run!  if not
      caught locally (say by putting a catch expression around the call
      to this procedure).
+
+     This procedure will not call 'await' if the connection can be made
+     immediately: instead, after making the connection this procedure
+     would return straight away without invoking the event loop.
 
      This procedure is first available in version 0.12 of this library.
 
@@ -3298,8 +3319,8 @@ module, so as not to create a hard dependency on guile-gnome.
  -- Scheme Procedure: await-glib-put-bytevector await resume port bv
      This is a convenience procedure which will start a write watch on
      'port' for writing the contents of a bytevector 'bv' to the port.
-     It calls 'await' while waiting for output to become available.  The
-     event loop will not be blocked by this procedure even if only
+     It calls 'await' if it has to wait for output to become available.
+     The event loop will not be blocked by this procedure even if only
      individual bytes can be written at any one time (although if 'port'
      references a socket, it should be non-blocking for this to be
      guaranteed).  It is intended to be called in a waitable procedure
@@ -3357,18 +3378,24 @@ module, so as not to create a hard dependency on guile-gnome.
           	  (g-main-loop-quit main-loop)))
           (g-main-loop-run main-loop)
 
+     Unlike the other await-* procedures in this module,
+     await-glib-put-bytevector and await-glib-put-string will not call
+     'await' if all the contents of the bytevector/string can be written
+     immediately: instead, after writing this procedure would return
+     straight away without invoking the glib main loop.
+
      This procedure is first available in version 0.11 of this library.
 
  -- Scheme Procedure: await-glib-put-string await resume port text
      This is a convenience procedure which will start a write watch on
-     'port' for writing a string to the port.  It calls 'await' while
-     waiting for output to become available.  The event loop will not be
-     blocked by this procedure even if only individual characters or
-     part characters can be written at any one time (although if 'port'
-     references a socket, it should be non-blocking for this to be
-     guaranteed).  It is intended to be called in a waitable procedure
-     invoked by a-sync, and this procedure is implemented using
-     await-glib-put-bytevector.
+     'port' for writing a string to the port.  It calls 'await' if it
+     has to wait for output to become available.  The event loop will
+     not be blocked by this procedure even if only individual characters
+     or part characters can be written at any one time (although if
+     'port' references a socket, it should be non-blocking for this to
+     be guaranteed).  It is intended to be called in a waitable
+     procedure invoked by a-sync, and this procedure is implemented
+     using await-glib-put-bytevector.
 
      For reasons of efficiency, this procedure by-passes the port's
      output buffer (if any) and sends the output to the underlying file
@@ -3433,6 +3460,12 @@ module, so as not to create a hard dependency on guile-gnome.
      If CR-LF line endings are to be written when outputting the string,
      the '\r' character (as well as the '\n' character) must be embedded
      in the string.
+
+     Unlike the other await-* procedures in this module,
+     await-glib-put-bytevector and await-glib-put-string will not call
+     'await' if all the contents of the bytevector/string can be written
+     immediately: instead, after writing this procedure would return
+     straight away without invoking the glib main loop.
 
      This procedure is first available in version 0.10 of this library.
 
@@ -3892,11 +3925,11 @@ Node: Top85
 Node: overview1453
 Node: coroutines4756
 Node: event loop23160
-Node: sockets111754
-Node: thread pool115132
-Node: monotonic time136577
-Node: gnome glib138012
-Node: compose178255
-Node: meeting185580
+Node: sockets112396
+Node: thread pool116228
+Node: monotonic time137673
+Node: gnome glib139108
+Node: compose180012
+Node: meeting187337
 
 End Tag Table

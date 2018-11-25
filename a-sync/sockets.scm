@@ -47,6 +47,11 @@
 ;; caught locally (say by putting a catch expression around the call
 ;; to this procedure).
 ;;
+;; This procedure will not call 'await' if a connection is immediately
+;; available to be accepted without waiting: instead, after accepting
+;; the connection this procedure would return straight away without
+;; invoking the event loop.
+;;
 ;; This procedure is first available in version 0.12 of this library.
 (define await-accept!
   (case-lambda
@@ -107,6 +112,10 @@
 ;; Subsequent exceptions will propagate out of event-loop-run! if not
 ;; caught locally (say by putting a catch expression around the call
 ;; to this procedure).
+;;
+;; This procedure will not call 'await' if the connection can be made
+;; immediately: instead, after making the connection this procedure
+;; would return straight away without invoking the event loop.
 ;;
 ;; This procedure is first available in version 0.12 of this library.
 (define (await-connect! await resume next . rest)

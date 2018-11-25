@@ -904,7 +904,7 @@
 ;; argument is optional: this procedure operates on the event loop
 ;; passed in as an argument, or if none is passed (or #f is passed),
 ;; on the default event loop.  Applying this procedure to an event
-;; loop does not changing the blocking status of the loop as may
+;; loop does not change the blocking status of the loop as may
 ;; previously have been set by event-loop-block!, should
 ;; event-loop-run! be applied to it again.
 ;;
@@ -2553,18 +2553,18 @@
 ;;
 ;; This procedure will start a write watch on 'port' for writing the
 ;; contents of a bytevector 'bv' to the port, which must be
-;; non-blocking.  It calls 'await' while waiting for output to become
-;; available.  Provided 'port' is a non-blocking port, the event loop
-;; will not be blocked by this procedure even if only individual bytes
-;; can be written at any one time.  It is intended to be called within
-;; a waitable procedure invoked by a-sync (which supplies the 'await'
-;; and 'resume' arguments), and this procedure is implemented using
-;; a-sync-write-watch!.  If an exceptional condition ('excpt) is
-;; encountered, #f will be returned, otherwise #t will be returned
-;; (but an exceptional condition should never be encountered on an
-;; output port).  The 'loop' argument is optional: this procedure
-;; operates on the event loop passed in as an argument, or if none is
-;; passed (or #f is passed), on the default event loop.
+;; non-blocking.  It calls 'await' if it has to wait for output to
+;; become available.  Provided 'port' is a non-blocking port, the
+;; event loop will not be blocked by this procedure even if only
+;; individual bytes can be written at any one time.  It is intended to
+;; be called within a waitable procedure invoked by a-sync (which
+;; supplies the 'await' and 'resume' arguments), and this procedure is
+;; implemented using a-sync-write-watch!.  If an exceptional condition
+;; ('excpt) is encountered, #f will be returned, otherwise #t will be
+;; returned (but an exceptional condition should never be encountered
+;; on an output port).  The 'loop' argument is optional: this
+;; procedure operates on the event loop passed in as an argument, or
+;; if none is passed (or #f is passed), on the default event loop.
 ;;
 ;; For reasons of efficiency, this procedure by-passes the port's
 ;; output buffer and sends the output to the underlying file
@@ -2600,6 +2600,12 @@
 ;; first instance out of this procedure so that they may be caught
 ;; locally, say by putting a catch expression around the call to this
 ;; procedure.
+;;
+;; Unlike the other await-* procedures in this module,
+;; await-put-bytevector! and await-put-string! will not call 'await'
+;; if all the contents of the bytevector/string can be written
+;; immediately: instead, after writing this procedure would return
+;; straight away without invoking the event loop.
 ;;
 ;; This procedure is first available in version 0.11 of this library.
 (define await-put-bytevector! 
@@ -2657,8 +2663,8 @@
 ;;
 ;; This procedure will start a write watch on 'port' for writing a
 ;; string to the port, which must be non-blocking.  It calls 'await'
-;; while waiting for output to become available.  Provided 'port' is a
-;; non-blocking port, the event loop will not be blocked by this
+;; if it has to wait for output to become available.  Provided 'port'
+;; is a non-blocking port, the event loop will not be blocked by this
 ;; procedure even if only individual characters or part characters can
 ;; be written at any one time.  It is intended to be called within a
 ;; waitable procedure invoked by a-sync (which supplies the 'await'
@@ -2717,6 +2723,12 @@
 ;; If CR-LF line endings are to be written when outputting the string,
 ;; the '\r' character (as well as the '\n' character) must be embedded
 ;; in the string.
+;;
+;; Unlike the other await-* procedures in this module,
+;; await-put-bytevector! and await-put-string! will not call 'await'
+;; if all the contents of the bytevector/string can be written
+;; immediately: instead, after writing this procedure would return
+;; straight away without invoking the event loop.
 ;;
 ;; This procedure is first available in version 0.10 of this library.
 (define await-put-string! 

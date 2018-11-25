@@ -734,8 +734,8 @@
 
 ;; This is a convenience procedure which will start a write watch on
 ;; 'port' for writing the contents of a bytevector 'bv' to the port.
-;; It calls 'await' while waiting for output to become available.  The
-;; event loop will not be blocked by this procedure even if only
+;; It calls 'await' if it has to wait for output to become available.
+;; The event loop will not be blocked by this procedure even if only
 ;; individual bytes can be written at any one time (although if 'port'
 ;; references a socket, it should be non-blocking for this to be
 ;; guaranteed).  It is intended to be called in a waitable procedure
@@ -773,6 +773,12 @@
 ;; first instance out of this procedure so that they may be caught
 ;; locally, say by putting a catch expression around the call to this
 ;; procedure.
+;;
+;; Unlike the other await-* procedures in this module,
+;; await-glib-put-bytevector and await-glib-put-string will not call
+;; 'await' if all the contents of the bytevector/string can be written
+;; immediately: instead, after writing this procedure would return
+;; straight away without invoking the glib main loop.
 ;;
 ;; This procedure is first available in version 0.11 of this library.
 (define (await-glib-put-bytevector await resume port bv)
@@ -813,14 +819,14 @@
 		(release-port-handle port))))))))
 
 ;; This is a convenience procedure which will start a write watch on
-;; 'port' for writing a string to the port.  It calls 'await' while
-;; waiting for output to become available.  The event loop will not be
-;; blocked by this procedure even if only individual characters or
-;; part characters can be written at any one time (although if 'port'
-;; references a socket, it should be non-blocking for this to be
-;; guaranteed).  It is intended to be called in a waitable procedure
-;; invoked by a-sync, and this procedure is implemented using
-;; await-glib-put-bytevector.
+;; 'port' for writing a string to the port.  It calls 'await' if it
+;; has to wait for output to become available.  The event loop will
+;; not be blocked by this procedure even if only individual characters
+;; or part characters can be written at any one time (although if
+;; 'port' references a socket, it should be non-blocking for this to
+;; be guaranteed).  It is intended to be called in a waitable
+;; procedure invoked by a-sync, and this procedure is implemented
+;; using await-glib-put-bytevector.
 ;;
 ;; For reasons of efficiency, this procedure by-passes the port's
 ;; output buffer (if any) and sends the output to the underlying file
@@ -866,6 +872,12 @@
 ;; If CR-LF line endings are to be written when outputting the string,
 ;; the '\r' character (as well as the '\n' character) must be embedded
 ;; in the string.
+;;
+;; Unlike the other await-* procedures in this module,
+;; await-glib-put-bytevector and await-glib-put-string will not call
+;; 'await' if all the contents of the bytevector/string can be written
+;; immediately: instead, after writing this procedure would return
+;; straight away without invoking the glib main loop.
 ;;
 ;; This procedure is first available in version 0.10 of this library.
 (define (await-glib-put-string await resume port text)

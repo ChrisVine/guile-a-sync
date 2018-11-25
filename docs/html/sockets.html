@@ -89,6 +89,11 @@ socket errors when first calling the &rsquo;accept&rsquo; procedure.  Subsequent
 exceptions will propagate out of event-loop-run! if not caught locally
 (say by putting a catch expression around the call to this procedure).
 </p>
+<p>This procedure will not call &rsquo;await&rsquo; if a connection is immediately
+available to be accepted without waiting: instead, after accepting the
+connection this procedure would return straight away without invoking
+the event loop.
+</p>
 <p>This procedure is first available in version 0.12 of this library.
 </p></dd></dl>
 
@@ -122,6 +127,10 @@ thread as that in which the event loop runs.
 socket errors when first calling the &rsquo;connect&rsquo; procedure.  Subsequent
 exceptions will propagate out of event-loop-run! if not caught locally
 (say by putting a catch expression around the call to this procedure).
+</p>
+<p>This procedure will not call &rsquo;await&rsquo; if the connection can be made
+immediately: instead, after making the connection this procedure would
+return straight away without invoking the event loop.
 </p>
 <p>This procedure is first available in version 0.12 of this library.
 </p></dd></dl>

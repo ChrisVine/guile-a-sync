@@ -1586,8 +1586,8 @@ implementation of await-put-bytevector!:
 <dt><a name="index-await_002dput_002dbytevector_0021"></a>Scheme Procedure: <strong>await-put-bytevector!</strong> <em>await resume [loop] port bv</em></dt>
 <dd><p>This is a convenience procedure for use in an event loop, which will
 start a write watch on &rsquo;port&rsquo; for writing the contents of a bytevector
-&rsquo;bv&rsquo; to the port, which must be non-blocking.  It calls &rsquo;await&rsquo; while
-waiting for output to become available.  Provided &rsquo;port&rsquo; is a
+&rsquo;bv&rsquo; to the port, which must be non-blocking.  It calls &rsquo;await&rsquo; if it
+has to wait for output to become available.  Provided &rsquo;port&rsquo; is a
 non-blocking port, the event loop will not be blocked by this
 procedure even if only individual bytes can be written at any one
 time.  It is intended to be called within a waitable procedure invoked
@@ -1660,6 +1660,12 @@ the call to this procedure.
 (event-loop-run!)
 </pre></div>
 
+<p>Unlike the other await-* procedures in this module,
+await-put-bytevector! and await-put-string! will not call &rsquo;await&rsquo; if
+all the contents of the bytevector/string can be written immediately:
+instead, after writing this procedure would return straight away
+without invoking the event loop.
+</p>
 <p>This procedure is first available in version 0.11 of this library.
 </p>
 <p>An example of the use of await-put-string!, which is implemented using
@@ -1671,13 +1677,13 @@ example-server.scm files in the docs directory.
 <dt><a name="index-await_002dput_002dstring_0021"></a>Scheme Procedure: <strong>await-put-string!</strong> <em>await resume [loop] port text</em></dt>
 <dd><p>This is a convenience procedure for use in an event loop, which will
 start a write watch on &rsquo;port&rsquo; for writing a string to the port, which
-must be non-blocking.  It calls &rsquo;await&rsquo; while waiting for output to
-become available.  Provided &rsquo;port&rsquo; is a non-blocking port, the event
-loop will not be blocked by this procedure even if only individual
-characters or part characters can be written at any one time.  It is
-intended to be called within a waitable procedure invoked by a-sync
-(which supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments), and this
-procedure is implemented using await-put-bytevector!.  If an
+must be non-blocking.  It calls &rsquo;await&rsquo; if it has to wait for output
+to become available.  Provided &rsquo;port&rsquo; is a non-blocking port, the
+event loop will not be blocked by this procedure even if only
+individual characters or part characters can be written at any one
+time.  It is intended to be called within a waitable procedure invoked
+by a-sync (which supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments), and
+this procedure is implemented using await-put-bytevector!.  If an
 exceptional condition (&rsquo;excpt) is encountered, #f will be returned,
 otherwise #t will be returned (but an exceptional condition should
 never be encountered on an output port).  The &rsquo;loop&rsquo; argument is
@@ -1757,6 +1763,12 @@ at program start-up to &rsquo;substitute).
 <p>If CR-LF line endings are to be written when outputting the string,
 the &rsquo;\r&rsquo; character (as well as the &rsquo;\n&rsquo; character) must be embedded in
 the string.
+</p>
+<p>Unlike the other await-* procedures in this module,
+await-put-bytevector! and await-put-string! will not call &rsquo;await&rsquo; if
+all the contents of the bytevector/string can be written immediately:
+instead, after writing this procedure would return straight away
+without invoking the event loop.
 </p>
 <p>This procedure is first available in version 0.10 of this library.
 </p>

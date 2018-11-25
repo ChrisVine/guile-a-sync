@@ -727,12 +727,13 @@ implementation of await-glib-put-bytevector:
 <dt><a name="index-await_002dglib_002dput_002dbytevector"></a>Scheme Procedure: <strong>await-glib-put-bytevector</strong> <em>await resume port bv</em></dt>
 <dd><p>This is a convenience procedure which will start a write watch on
 &rsquo;port&rsquo; for writing the contents of a bytevector &rsquo;bv&rsquo; to the port.  It
-calls &rsquo;await&rsquo; while waiting for output to become available.  The event
-loop will not be blocked by this procedure even if only individual
-bytes can be written at any one time (although if &rsquo;port&rsquo; references a
-socket, it should be non-blocking for this to be guaranteed).  It is
-intended to be called in a waitable procedure invoked by a-sync, and
-this procedure is implemented using a-sync-glib-write-watch.
+calls &rsquo;await&rsquo; if it has to wait for output to become available.  The
+event loop will not be blocked by this procedure even if only
+individual bytes can be written at any one time (although if &rsquo;port&rsquo;
+references a socket, it should be non-blocking for this to be
+guaranteed).  It is intended to be called in a waitable procedure
+invoked by a-sync, and this procedure is implemented using
+a-sync-glib-write-watch.
 </p>
 <p>For reasons of efficiency, this procedure by-passes the port&rsquo;s output
 buffer (if any) and sends the output to the underlying file descriptor
@@ -786,14 +787,20 @@ to this procedure.
 (g-main-loop-run main-loop)
 </pre></div>
 
+<p>Unlike the other await-* procedures in this module,
+await-glib-put-bytevector and await-glib-put-string will not call
+&rsquo;await&rsquo; if all the contents of the bytevector/string can be written
+immediately: instead, after writing this procedure would return
+straight away without invoking the glib main loop.
+</p>
 <p>This procedure is first available in version 0.11 of this library.
 </p></dd></dl>
 
 <dl>
 <dt><a name="index-await_002dglib_002dput_002dstring"></a>Scheme Procedure: <strong>await-glib-put-string</strong> <em>await resume port text</em></dt>
 <dd><p>This is a convenience procedure which will start a write watch on
-&rsquo;port&rsquo; for writing a string to the port.  It calls &rsquo;await&rsquo; while
-waiting for output to become available.  The event loop will not be
+&rsquo;port&rsquo; for writing a string to the port.  It calls &rsquo;await&rsquo; if it has
+to wait for output to become available.  The event loop will not be
 blocked by this procedure even if only individual characters or part
 characters can be written at any one time (although if &rsquo;port&rsquo;
 references a socket, it should be non-blocking for this to be
@@ -865,6 +872,12 @@ at program start-up to &rsquo;substitute).
 <p>If CR-LF line endings are to be written when outputting the string,
 the &rsquo;\r&rsquo; character (as well as the &rsquo;\n&rsquo; character) must be embedded in
 the string.
+</p>
+<p>Unlike the other await-* procedures in this module,
+await-glib-put-bytevector and await-glib-put-string will not call
+&rsquo;await&rsquo; if all the contents of the bytevector/string can be written
+immediately: instead, after writing this procedure would return
+straight away without invoking the glib main loop.
 </p>
 <p>This procedure is first available in version 0.10 of this library.
 </p></dd></dl>
