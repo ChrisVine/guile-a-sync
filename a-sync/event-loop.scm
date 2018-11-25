@@ -909,7 +909,18 @@
 ;; event-loop-run! be applied to it again.
 ;;
 ;; Applying this procedure to an event loop has no effect if the event
-;; loop is not actually running.
+;; loop is not actually running.  A few await-* procedures
+;; (await-put-bytevector!, await-put-string!, await-accept! and
+;; await-connect!) do not pass control to the event loop if they can
+;; operate immediately without waiting, so if (i) the event loop
+;; concerned has been set blocking by event-loop-block!, (ii) this
+;; procedure is invoked on the event loop in an a-sync or
+;; compose-a-sync block in order to bring it to an end, and (iii)
+;; before invoking this procedure the a-sync or compose-a-sync block
+;; has done nothing except make a call to one or more of those
+;; particular await-* procedures, then in order to make sure the loop
+;; is running consider calling await-yield! or some similar procedure
+;; before applying this procedure.
 ;;
 ;; Note that the discarding of file watches, timeouts and unexecuted
 ;; events remaining in the event loop means that if one of the helper
@@ -917,8 +928,8 @@
 ;; not yet returned, it may fail to complete, as its continuation may
 ;; disappear - it will be as if the a-sync or compose-a-sync block
 ;; concerned had come to an end.  It may therefore be best only to
-;; call this procedure on an event loop after all such await-*
-;; procedures which are executing have returned.
+;; call this procedure on an event loop after all await-* procedures
+;; which are executing in it have returned.
 ;;
 ;; This procedure should not throw an exception unless memory is
 ;; exhausted.
