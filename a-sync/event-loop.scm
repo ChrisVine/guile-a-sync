@@ -1330,31 +1330,34 @@
      (error "Wrong number of arguments passed to await-generator-in-thread!" await resume rest))))
 
 (define (_await-generator-in-thread-impl! await resume loop generator proc handler)
-  (if handler
-      (call-with-new-thread
-       (lambda ()
-	 (catch
-	   #t
-	   (lambda ()
-	     (let ((iter (make-iterator generator)))
-	       (let next ((res (iter)))
-		 (event-post! (lambda () (resume res))
-			      loop)
-		 (when (not (eq? res 'stop-iteration))
-		   (next (iter))))))
-	   (lambda args
-	     (event-post! (lambda ()
-			    (apply handler args)
-			    (resume 'guile-a-sync-thread-error))
-			  loop)))))
-      (call-with-new-thread
-       (lambda ()
-	 (let ((iter (make-iterator generator)))
-	   (let next ((res (iter)))
-	     (event-post! (lambda () (resume res))
-			  loop)
-	     (when (not (eq? res 'stop-iteration))
-	       (next (iter))))))))
+  (let ((loop (or loop (get-default-event-loop))))
+    (when (not loop) 
+      (error "No default event loop set for call to await-generator-in-thread!"))
+    (if handler
+	(call-with-new-thread
+	 (lambda ()
+	   (catch
+	     #t
+	     (lambda ()
+	       (let ((iter (make-iterator generator)))
+		 (let next ((res (iter)))
+		   (event-post! (lambda () (resume res))
+				loop)
+		   (when (not (eq? res 'stop-iteration))
+		     (next (iter))))))
+	     (lambda args
+	       (event-post! (lambda ()
+			      (apply handler args)
+			      (resume 'guile-a-sync-thread-error))
+			    loop)))))
+	(call-with-new-thread
+	 (lambda ()
+	   (let ((iter (make-iterator generator)))
+	     (let next ((res (iter)))
+	       (event-post! (lambda () (resume res))
+			    loop)
+	       (when (not (eq? res 'stop-iteration))
+		 (next (iter)))))))))
   (let next ((res (await)))
     (cond
      ((eq? res 'stop-iteration)
