@@ -1,7 +1,7 @@
 #!/usr/bin/env guile
 !#
 
-;; Copyright (C) 2016 and 2017 Chris Vine
+;; Copyright (C) 2016 to 2019 Chris Vine
 ;;
 ;; Permission is hereby granted, free of charge, to any person
 ;; obtaining a copy of this file (the "Software"), to deal in the
@@ -27,7 +27,7 @@
 
 ;; This is an example file for using asynchronous reads and writes on
 ;; sockets.  It will provide the caller's IPv4 internet address from
-;; myip.dnsdynamic.org.  Normally if you wanted to do this from a
+;; checkip.dyndns.com.  Normally if you wanted to do this from a
 ;; utility script, you would do it synchronously using guile's built
 ;; in web support module.  However in a program using an event loop,
 ;; you would need to do it asynchronously.  This does so.
@@ -36,11 +36,12 @@
 
 
 (use-modules
+ (ice-9 regex)
  (a-sync coroutines)
  (a-sync event-loop)
  (a-sync sockets))
 
-(define check-ip "myip.dnsdynamic.org")
+(define check-ip "checkip.dyndns.com")
 
 (define (await-read-response await resume sock)
   (define header-done #f)
@@ -90,8 +91,10 @@
 	 (lambda ()
 	   (await-read-response await resume sock))
        (lambda (header body)
-	 (display body)
-	 (newline)))
+	 (let ((ip (match:substring 
+		    (string-match "[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+" body))))
+	   (display ip)
+	   (newline))))
      (event-loop-block! #f))))
 
 (event-loop-run!)
