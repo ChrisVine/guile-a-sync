@@ -1,6 +1,6 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
-<!-- Created by GNU Texinfo 6.5, http://www.gnu.org/software/texinfo/ -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>sockets (guile-a-sync)</title>
@@ -10,31 +10,22 @@
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
-<link href="index.html#Top" rel="start" title="Top">
-<link href="index.html#Top" rel="up" title="Top">
-<link href="thread-pool.html#thread-pool" rel="next" title="thread pool">
-<link href="event-loop.html#event-loop" rel="prev" title="event loop">
+<link href="index.html" rel="start" title="Top">
+<link href="index.html" rel="up" title="Top">
+<link href="thread-pool.html" rel="next" title="thread pool">
+<link href="event-loop.html" rel="prev" title="event loop">
 <style type="text/css">
 <!--
 a.summary-letter {text-decoration: none}
 blockquote.indentedblock {margin-right: 0em}
-blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
-blockquote.smallquotation {font-size: smaller}
 div.display {margin-left: 3.2em}
 div.example {margin-left: 3.2em}
 div.lisp {margin-left: 3.2em}
-div.smalldisplay {margin-left: 3.2em}
-div.smallexample {margin-left: 3.2em}
-div.smalllisp {margin-left: 3.2em}
 kbd {font-style: oblique}
 pre.display {font-family: inherit}
 pre.format {font-family: inherit}
 pre.menu-comment {font-family: serif}
 pre.menu-preformatted {font-family: serif}
-pre.smalldisplay {font-family: inherit; font-size: smaller}
-pre.smallexample {font-size: smaller}
-pre.smallformat {font-family: inherit; font-size: smaller}
-pre.smalllisp {font-size: smaller}
 span.nolinebreak {white-space: nowrap}
 span.roman {font-family: initial; font-weight: normal}
 span.sansserif {font-family: sans-serif; font-weight: normal}
@@ -46,10 +37,9 @@ ul.no-bullet {list-style: none}
 </head>
 
 <body lang="en">
-<a name="sockets"></a>
-<div class="header">
+<span id="sockets"></span><div class="header">
 <p>
-Next: <a href="thread-pool.html#thread-pool" accesskey="n" rel="next">thread pool</a>, Previous: <a href="event-loop.html#event-loop" accesskey="p" rel="prev">event loop</a>, Up: <a href="index.html#Top" accesskey="u" rel="up">Top</a> &nbsp; </p>
+Next: <a href="thread-pool.html" accesskey="n" rel="next">thread pool</a>, Previous: <a href="event-loop.html" accesskey="p" rel="prev">event loop</a>, Up: <a href="index.html" accesskey="u" rel="up">Top</a> &nbsp; </p>
 </div>
 <hr>
 <h4 class="node-heading">sockets</h4>
@@ -58,7 +48,7 @@ Next: <a href="thread-pool.html#thread-pool" accesskey="n" rel="next">thread poo
 procedures for sockets.
 </p>
 <dl>
-<dt><a name="index-await_002daccept_0021"></a>Scheme Procedure: <strong>await-accept!</strong> <em>await resume [loop] sock</em></dt>
+<dt id="index-await_002daccept_0021">Scheme Procedure: <strong>await-accept!</strong> <em>await resume [loop] sock</em></dt>
 <dd><p>This is a convenience procedure which will start a watch on listening
 socket &rsquo;sock&rsquo; for a connection.  &rsquo;sock&rsquo; must be a non-blocking socket
 port.  This procedure wraps the guile &rsquo;accept&rsquo; procedure and therefore
@@ -98,7 +88,7 @@ the event loop.
 </p></dd></dl>
 
 <dl>
-<dt><a name="index-await_002dconnect_0021"></a>Scheme Procedure: <strong>await-connect!</strong> <em>await resume [loop] sock . args</em></dt>
+<dt id="index-await_002dconnect_0021">Scheme Procedure: <strong>await-connect!</strong> <em>await resume [loop] sock . args</em></dt>
 <dd><p>This is a convenience procedure which will connect socket &rsquo;sock&rsquo; to a
 remote host.  Particulars of the remote host are given by &rsquo;args&rsquo; which
 are the arguments (other than &rsquo;sock&rsquo;) taken by guile&rsquo;s &rsquo;connect&rsquo;
@@ -137,7 +127,7 @@ return straight away without invoking the event loop.
 <hr>
 <div class="header">
 <p>
-Next: <a href="thread-pool.html#thread-pool" accesskey="n" rel="next">thread pool</a>, Previous: <a href="event-loop.html#event-loop" accesskey="p" rel="prev">event loop</a>, Up: <a href="index.html#Top" accesskey="u" rel="up">Top</a> &nbsp; </p>
+Next: <a href="thread-pool.html" accesskey="n" rel="next">thread pool</a>, Previous: <a href="event-loop.html" accesskey="p" rel="prev">event loop</a>, Up: <a href="index.html" accesskey="u" rel="up">Top</a> &nbsp; </p>
 </div>
 
 

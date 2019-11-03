@@ -1,6 +1,6 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
-<!-- Created by GNU Texinfo 6.5, http://www.gnu.org/software/texinfo/ -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>monotonic time (guile-a-sync)</title>
@@ -10,31 +10,22 @@
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
-<link href="index.html#Top" rel="start" title="Top">
-<link href="index.html#Top" rel="up" title="Top">
-<link href="gnome-glib.html#gnome-glib" rel="next" title="gnome glib">
-<link href="thread-pool.html#thread-pool" rel="prev" title="thread pool">
+<link href="index.html" rel="start" title="Top">
+<link href="index.html" rel="up" title="Top">
+<link href="gnome-glib.html" rel="next" title="gnome glib">
+<link href="thread-pool.html" rel="prev" title="thread pool">
 <style type="text/css">
 <!--
 a.summary-letter {text-decoration: none}
 blockquote.indentedblock {margin-right: 0em}
-blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
-blockquote.smallquotation {font-size: smaller}
 div.display {margin-left: 3.2em}
 div.example {margin-left: 3.2em}
 div.lisp {margin-left: 3.2em}
-div.smalldisplay {margin-left: 3.2em}
-div.smallexample {margin-left: 3.2em}
-div.smalllisp {margin-left: 3.2em}
 kbd {font-style: oblique}
 pre.display {font-family: inherit}
 pre.format {font-family: inherit}
 pre.menu-comment {font-family: serif}
 pre.menu-preformatted {font-family: serif}
-pre.smalldisplay {font-family: inherit; font-size: smaller}
-pre.smallexample {font-size: smaller}
-pre.smallformat {font-family: inherit; font-size: smaller}
-pre.smalllisp {font-size: smaller}
 span.nolinebreak {white-space: nowrap}
 span.roman {font-family: initial; font-weight: normal}
 span.sansserif {font-family: sans-serif; font-weight: normal}
@@ -46,19 +37,18 @@ ul.no-bullet {list-style: none}
 </head>
 
 <body lang="en">
-<a name="monotonic-time"></a>
-<div class="header">
+<span id="monotonic-time"></span><div class="header">
 <p>
-Next: <a href="gnome-glib.html#gnome-glib" accesskey="n" rel="next">gnome glib</a>, Previous: <a href="thread-pool.html#thread-pool" accesskey="p" rel="prev">thread pool</a>, Up: <a href="index.html#Top" accesskey="u" rel="up">Top</a> &nbsp; </p>
+Next: <a href="gnome-glib.html" accesskey="n" rel="next">gnome glib</a>, Previous: <a href="thread-pool.html" accesskey="p" rel="prev">thread pool</a>, Up: <a href="index.html" accesskey="u" rel="up">Top</a> &nbsp; </p>
 </div>
 <hr>
 <h4 class="node-heading">monotonic time</h4>
 
 <p>The (a-sync monotonic-time) module provides two procedures.  It is
-loaded by the <a href="event-loop.html#event-loop">(a-sync event-loop)</a> module.
+loaded by the <a href="event-loop.html">(a-sync event-loop)</a> module.
 </p>
 <dl>
-<dt><a name="index-have_002dmonotonic_002dtime_003f"></a>Scheme Procedure: <strong>have-monotonic-time?</strong></dt>
+<dt id="index-have_002dmonotonic_002dtime_003f">Scheme Procedure: <strong>have-monotonic-time?</strong></dt>
 <dd><p>This procedure indicates whether the get-time procedure (see below)
 provides a monotonic clock.  Almost all modern linux/unix-like systems
 will do so.  This procedure may return #f if windows is in use, or if
@@ -67,14 +57,14 @@ different one.
 </p></dd></dl>
 
 <dl>
-<dt><a name="index-get_002dtime"></a>Scheme Procedure: <strong>get-time</strong></dt>
+<dt id="index-get_002dtime">Scheme Procedure: <strong>get-time</strong></dt>
 <dd><p>This returns the current time as a (secs . usecs) pair from some
 arbitrary epoch.  If (have-monotonic-time) returns #t, then this will
 be derived from a monotonic clock obtained by calling the
 clock_gettime() POSIX function with a CLOCK_MONOTONIC argument.  This
-procedure is used by the <a href="event-loop.html#event-loop">event-loop</a> timeout
+procedure is used by the <a href="event-loop.html">event-loop</a> timeout
 implementation.  This procedure throws an &rsquo;a-sync-exception (which
-would propagate out of the event-loop-run! procedure if <a href="event-loop.html#event-loop">event-loop</a> is in use) if the library has been configured for
+would propagate out of the event-loop-run! procedure if <a href="event-loop.html">event-loop</a> is in use) if the library has been configured for
 monotonic time at configuration time but it is not in fact supported.
 However this is not worth catering for by user code as it should never
 happen - the library configuration macros should always give the
