@@ -14,11 +14,13 @@ See the documentation mentioned below for further details, and the
 docs/example.scm and docs/example-glib.scm files.
 
 A separate guile-a-sync2 library is available for guile-2.2 and
-guile-3.0 here: https://github.com/ChrisVine/guile-a-sync2 .  This
-library and guile-a-sync2 are parallel installable.  Where a program
+guile-3.0 here: https://github.com/ChrisVine/guile-a-sync2 , and a
+guile-a-sync3 library is available for guile-3.0 only here:
+https://github.com/ChrisVine/guile-a-sync3 .  This library is parallel
+installable with guile-a-sync2 or with guile-a-sync3.  Where a program
 is to be heavily i/o based, say it is based on sockets, and
-guile-2.2/3.0 is available, guile-a-sync2 is recommended as it makes
-use of guile's suspendable ports.
+guile-2.2/3.0 is available, guile-a-sync2 or guile-a-sync3 is
+recommended as they make use of guile's suspendable ports.
 
 Installation
 ------------
