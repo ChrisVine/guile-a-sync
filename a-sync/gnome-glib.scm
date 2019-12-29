@@ -149,20 +149,17 @@
   (await))
 
 ;; This is a convenience procedure for use with glib, which will
-;; surrender execution to the relevant event loop, so that code in
+;; surrender execution to the default glib main loop, so that code in
 ;; other a-sync or compose-a-sync blocks can run.  The remainder of
-;; the code after the call to await-yield! in the current a-sync or
-;; compose-a-sync block will execute on the next iteration through the
-;; loop.  It is intended to be called within a waitable procedure
+;; the code after the call to await-glib-yield in the current a-sync
+;; or compose-a-sync block will execute on the next iteration through
+;; the loop.  It is intended to be called within a waitable procedure
 ;; invoked by a-sync (which supplies the 'await' and 'resume'
 ;; arguments).  It's effect is similar to calling await-glib-task with
 ;; a task that does nothing.
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
-;; same thread as that in which the relevant event loop runs: for this
-;; purpose "the relevant event loop" is the event loop given by the
-;; 'loop' argument, or if no 'loop' argument is provided or #f is
-;; provided as the 'loop' argument, then the default event loop.
+;; same thread as that in which the default glib main loop runs.
 ;;
 ;; This procedure should not throw any exceptions unless memory is
 ;; exhausted.
@@ -272,7 +269,7 @@
 ;; 'generator'.
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
-;; same thread as that in which the event loop runs.
+;; same thread as that in which the default glib main loop runs.
 ;;
 ;; When 'proc' executes, 'await' and 'resume' will still be in use by
 ;; this procedure, so they may not be reused by 'proc' (even though

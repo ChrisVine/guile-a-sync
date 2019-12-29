@@ -157,19 +157,17 @@ that.
 <dl>
 <dt id="index-await_002dglib_002dyield">Scheme Procedure: <strong>await-glib-yield</strong> <em>await resume</em></dt>
 <dd><p>This is a convenience procedure for use with glib, which will
-surrender execution to the relevant event loop, so that code in other
-a-sync or compose-a-sync blocks can run.  The remainder of the code
-after the call to await-yield! in the current a-sync or compose-a-sync
-block will execute on the next iteration through the loop.  It is
-intended to be called within a waitable procedure invoked by a-sync
-(which supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments).  It&rsquo;s effect is
-similar to calling await-glib-task with a task that does nothing.
+surrender execution to the default glib main loop, so that code in
+other a-sync or compose-a-sync blocks can run.  The remainder of the
+code after the call to await-glib-yield in the current a-sync or
+compose-a-sync block will execute on the next iteration through the
+loop.  It is intended to be called within a waitable procedure invoked
+by a-sync (which supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments).  It&rsquo;s
+effect is similar to calling await-glib-task with a task that does
+nothing.
 </p>
 <p>This procedure must (like the a-sync procedure) be called in the same
-thread as that in which the relevant event loop runs: for this purpose
-&quot;the relevant event loop&quot; is the event loop given by the &rsquo;loop&rsquo;
-argument, or if no &rsquo;loop&rsquo; argument is provided or #f is provided as
-the &rsquo;loop&rsquo; argument, then the default event loop.
+thread as that in which the default glib main loop runs.
 </p>
 <p>This procedure should not throw any exceptions unless memory is
 exhausted.
@@ -276,7 +274,7 @@ events in the main loop will not make progress, so blocking calls
 &rsquo;generator&rsquo;.
 </p>
 <p>This procedure must (like the a-sync procedure) be called in the same
-thread as that in which the event loop runs.
+thread as that in which the default glib main loop runs.
 </p>
 <p>When &rsquo;proc&rsquo; executes, &rsquo;await&rsquo; and &rsquo;resume&rsquo; will still be in use by
 this procedure, so they may not be reused by &rsquo;proc&rsquo; (even though
