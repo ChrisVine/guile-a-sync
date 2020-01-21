@@ -2552,10 +2552,12 @@ the already accumulated tasks has reduced.
      will run if 'thunk' throws, and the return value of the handler
      would become the return value of this procedure; otherwise the
      program will terminate if an unhandled exception propagates out of
-     'thunk'.  Note that unlike a handler passed to the thread-pool-add!
-     procedure, 'handler' will run in the event loop thread and not in a
-     thread pool thread.  Exceptions thrown by the handler procedure
-     will propagate out of event-loop-run!  for the 'loop' event loop.
+     'thunk'.  'handler' should take the same arguments as a guile catch
+     handler (this is implemented using catch).  Note that unlike a
+     handler passed to the thread-pool-add!  procedure, 'handler' will
+     run in the event loop thread and not in a thread pool thread.
+     Exceptions thrown by the handler procedure will propagate out of
+     event-loop-run!  for the 'loop' event loop.
 
      This procedure calls 'await' and must (like the a-sync procedure)
      be called in the same thread as that in which the 'loop' or default
@@ -2592,13 +2594,14 @@ the already accumulated tasks has reduced.
      The loop argument is optional.  The 'generator' argument is a
      procedure taking one argument, namely a yield argument (see the
      documentation on the make-iterator procedure for further details).
-     This await-generator-in-pool procedure will cause 'generator' to
-     run as a task in the 'pool' thread pool, and whenever 'generator'
-     yields a value this will cause 'proc' to execute in the event loop
-     specified by the 'loop' argument, or in the default event loop if
-     no 'loop' argument is provided or if #f is provided as the 'loop'
-     argument.  'proc' should be a procedure taking a single argument,
-     namely the value yielded by the generator.
+     This await-generator-in-thread-pool!  procedure will cause
+     'generator' to run as a task in the 'pool' thread pool, and
+     whenever 'generator' yields a value this will cause 'proc' to
+     execute in the event loop specified by the 'loop' argument, or in
+     the default event loop if no 'loop' argument is provided or if #f
+     is provided as the 'loop' argument.  'proc' should be a procedure
+     taking a single argument, namely the value yielded by the
+     generator.
 
      This procedure is intended to be called within a waitable procedure
      invoked by a-sync (which supplies the 'await' and 'resume'
@@ -2609,10 +2612,11 @@ the already accumulated tasks has reduced.
      If the optional 'handler' argument is provided, then that handler
      will run if 'generator' throws an exception; otherwise the program
      will terminate if an unhandled exception propagates out of
-     'generator'.  Note that unlike a handler passed to the
-     thread-pool-add!  procedure, 'handler' will run in the event loop
-     thread and not in a thread pool thread.  This procedure will return
-     #f if the generator completes normally, or
+     'generator'.  'handler' should take the same arguments as a guile
+     catch handler (this is implemented using catch).  Note that unlike
+     a handler passed to the thread-pool-add!  procedure, 'handler' will
+     run in the event loop thread and not in a thread pool thread.  This
+     procedure will return #f if the generator completes normally, or
      'guile-a-sync-thread-error if the generator throws an exception and
      'handler' is run (the 'guile-a-sync-thread-error symbol is reserved
      to the implementation and should not be yielded by the generator).
@@ -2630,8 +2634,8 @@ the already accumulated tasks has reduced.
      for the make-event-loop procedure for further information).
 
      Exceptions may propagate out of this procedure if they arise while
-     setting up, which shouldn't happen unless the thread loop given by
-     the 'pool' argument has been closed (in which case an
+     setting up, which shouldn't happen unless the thread pool given by
+     the 'pool' argument has been closed (in which case a
      'thread-pool-error exception will arise), the thread pool tries to
      start an additional native thread which the operating system fails
      to supply (which would cause a system exception to arise) or memory
@@ -3775,7 +3779,7 @@ object.
      This procedure is first available in version 0.15 of this library.
 
  -- Scheme Procedure: meeting-ready? meeting
-     This indicates whether applying message-send or message-receive (as
+     This indicates whether applying meeting-send or meeting-receive (as
      the case may be) to the meeting object 'meeting' will return
      immediately: in other words, this procedure will return #t if
      another a-sync or compose-a-sync block is already waiting on the
@@ -3970,10 +3974,10 @@ Node: coroutines4768
 Node: event loop23172
 Node: sockets113148
 Node: thread pool116980
-Node: monotonic time138425
-Node: gnome glib139860
-Node: compose180571
-Node: meeting187896
+Node: monotonic time138657
+Node: gnome glib140092
+Node: compose180803
+Node: meeting188128
 
 End Tag Table
 
