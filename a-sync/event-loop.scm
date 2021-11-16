@@ -1,4 +1,4 @@
-;; Copyright (C) 2014 to 2018 Chris Vine
+;; Copyright (C) 2014 to 2021 Chris Vine
 
 ;; This library is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU Lesser General Public
@@ -361,21 +361,24 @@
   (define read-files #f)
   (define write-files #f)
 
-  (with-mutex mutex
-    (case (_mode-get el)
-      ((closed)
-       (throw 'event-loop-error
-	      "event-loop-run!"
-	      "event-loop-run! applied to an event loop which has been closed"))
-      ((running prepare-to-quit)
-       (throw 'event-loop-error
-	      "event-loop-run!"
-	      "event-loop-run! applied to an event loop which is already running"))
-      (else
-       (set! event-in (_event-in-get el))
-       (set! event-fd (fileno event-in))
-       (_loop-thread-set! el (current-thread))
-       (_mode-set! el 'running))))
+  (let ((exc
+	 (with-mutex mutex
+	   (case (_mode-get el)
+	     ((closed)
+	      (list 'event-loop-error
+		    "event-loop-run!"
+		    "event-loop-run! applied to an event loop which has been closed"))
+	     ((running prepare-to-quit)
+	      (list 'event-loop-error
+		    "event-loop-run!"
+		    "event-loop-run! applied to an event loop which is already running"))
+	     (else
+	      (set! event-in (_event-in-get el))
+	      (set! event-fd (fileno event-in))
+	      (_loop-thread-set! el (current-thread))
+	      (_mode-set! el 'running)
+	      #f)))))
+    (when exc (apply throw exc)))
 
   (catch
     #t
@@ -500,8 +503,8 @@
       (with-mutex mutex
 	(_event-loop-reset! el)
 	(when (not (eq? (_mode-get el) 'closed))
-	  (_mode-set! el #f))
-	(apply throw args)))))
+	  (_mode-set! el #f)))
+      (apply throw args))))
 
 ;; This procedure is only called in the event loop thread, by
 ;; event-loop-run!  It must be called while holding the event loop

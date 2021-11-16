@@ -1,4 +1,4 @@
-;; Copyright (C) 2017 Chris Vine
+;; Copyright (C) 2017 to 2021 Chris Vine
 
 ;; This library is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU Lesser General Public
@@ -411,8 +411,8 @@
 		    (lambda args #f)))
 		(when (and (stopped-get pool)
 			   (blocking-get pool))
-		  (broadcast-condition-variable (condvar-get pool)))
-		(apply throw args)))))))))
+		  (broadcast-condition-variable (condvar-get pool))))
+	      (apply throw args))))))))
 
 ;; This procedure returns the current non-blocking status of the
 ;; thread pool.  (See the documentation on the thread-pool-stop!
@@ -438,14 +438,18 @@
 ;;
 ;; This procedure is first available in version 0.18 of this library.
 (define (thread-pool-set-non-blocking! pool val)
-  (with-mutex (mutex-get pool)
-    (when (stopped-get pool)
-      (throw 'thread-pool-error
-	     "thread-pool-set-non-blocking!"
-	     "thread-pool-set-non-blocking! applied to a thread pool which has been closed"
-	     #f
-	     #f))
-    (blocking-set! pool (not val))))
+  (let ((exc
+	 (with-mutex (mutex-get pool)
+	   (if (stopped-get pool)
+	       (list 'thread-pool-error
+		     "thread-pool-set-non-blocking!"
+		     "thread-pool-set-non-blocking! applied to a thread pool which has been closed"
+		     #f
+		     #f)
+	       (begin
+		 (blocking-set! pool (not val))
+		 #f)))))
+    (when exc (apply throw exc))))
 
 ;; This procedure returns the current idle time setting for the thread
 ;; pool, in milliseconds.
@@ -490,31 +494,35 @@
 ;;
 ;; This procedure is first available in version 0.18 of this library.
 (define (thread-pool-stop! pool)
-  (let ((mutex (mutex-get pool)))
-    (with-mutex mutex
-      (when (stopped-get pool)
-	(throw 'thread-pool-error
-	       "thread-pool-stop!"
-	       "thread-pool-stop! applied to a thread pool which has been closed"
-	       #f
-	       #f))
-      (stopped-set! pool #t)
-      (let ((thread-count (num-threads-get pool)))
-	;; we could be adding more 'kill-thread callbacks than
-	;; necessary here, because as we are doing this a timeout on a
-	;; thread might expire leading to its demise in that way, or a
-	;; concurrent call to thread-pool-change-max-threads! or
-	;; thread-pool-add! may have failed to start a thread and
-	;; thrown an exception.  However, that doesn't matter - we
-	;; just get left with a redundant callback in 'aq' which never
-	;; gets used and disappears when the pool is garbage collected
-	(do ((kill-count 0 (1+ kill-count)))
-	    ((= kill-count thread-count))
-	  (a-queue-push! (aq-get pool) (cons (lambda () (throw 'kill-thread)) #f)))
-	(when (blocking-get pool)
-	  (do ()
-	      ((= (num-threads-get pool) 0))
-	    (wait-condition-variable (condvar-get pool) mutex)))))))
+  (let* ((mutex (mutex-get pool))
+	 (exc
+	  (with-mutex mutex
+	    (if (stopped-get pool)
+		(list 'thread-pool-error
+		      "thread-pool-stop!"
+		      "thread-pool-stop! applied to a thread pool which has been closed"
+		      #f
+		      #f)
+		(begin
+		  (stopped-set! pool #t)
+		  (let ((thread-count (num-threads-get pool)))
+		    ;; we could be adding more 'kill-thread callbacks than
+		    ;; necessary here, because as we are doing this a timeout on a
+		    ;; thread might expire leading to its demise in that way, or a
+		    ;; concurrent call to thread-pool-change-max-threads! or
+		    ;; thread-pool-add! may have failed to start a thread and
+		    ;; thrown an exception.  However, that doesn't matter - we
+		    ;; just get left with a redundant callback in 'aq' which never
+		    ;; gets used and disappears when the pool is garbage collected
+		    (do ((kill-count 0 (1+ kill-count)))
+			((= kill-count thread-count))
+		      (a-queue-push! (aq-get pool) (cons (lambda () (throw 'kill-thread)) #f)))
+		    (when (blocking-get pool)
+		      (do ()
+			  ((= (num-threads-get pool) 0))
+			(wait-condition-variable (condvar-get pool) mutex))))
+		  #f)))))
+    (when exc (apply throw exc))))
 
 ;; This procedure adds a new task to the thread pool.  'task' must be
 ;; a thunk.  If one or more threads in the pool are currently blocking
@@ -554,23 +562,25 @@
 	   ;; count under a single mutex locking operation to ensure
 	   ;; atomicity within the pool
 	   (with-mutex mutex
-	     (when (stopped-get pool)
-	       (throw 'thread-pool-error
-		      "thread-pool-add!"
-		      "thread-pool-add! applied to a thread pool which has been closed"
-		      #f
-		      #f))
-	     (let ((num-threads (num-threads-get pool))
-		   (num-tasks (num-tasks-get pool)))
-	       (if (and (>= num-tasks num-threads)
-			(< num-threads (max-threads-get pool)))
-		   (begin
-		     (num-tasks-set! pool (1+ num-tasks))
-		     (num-threads-set! pool (1+ num-threads))
-		     #t)
-		   (begin
-		     (num-tasks-set! pool (1+ num-tasks))
-		     #f))))))
+	     (if (stopped-get pool)
+		 (list 'thread-pool-error
+		       "thread-pool-add!"
+		       "thread-pool-add! applied to a thread pool which has been closed"
+		       #f
+		       #f)
+		 (let ((num-threads (num-threads-get pool))
+		       (num-tasks (num-tasks-get pool)))
+		   (if (and (>= num-tasks num-threads)
+			    (< num-threads (max-threads-get pool)))
+		       (begin
+			 (num-tasks-set! pool (1+ num-tasks))
+			 (num-threads-set! pool (1+ num-threads))
+			 #t)
+		       (begin
+			 (num-tasks-set! pool (1+ num-tasks))
+			 #f)))))))
+      ;; if the pool has been stopped, throw the exception
+      (when (pair? start-thread) (apply throw start-thread))
       ;; if a thread is to be started, do it outside the mutex to
       ;; reduce contention: we will roll back if starting the thread
       ;; fails
@@ -579,37 +589,41 @@
 	  (lambda ()
 	    (call-with-new-thread (lambda () (thread-loop pool #f))))
 	  (lambda args
-	    (with-mutex mutex
-              ;; If min-threads is 0 we could be down to 0 threads
-              ;; with tasks still pending if in the period between
-              ;; releasing the mutex acquired on entry to this
-              ;; procedure and acquiring it again on handling this
-              ;; exception, there have been concurrent calls to
-              ;; thread-pool-set-max-threads! increasing and reducing
-              ;; the maximum thread count by at least two other
-              ;; threads where the launching of all new threads via
-              ;; that procedure and this one fails.  In such a case we
-              ;; should be able to launch a rescue thread while
-              ;; holding the mutex because no other threads could be
-              ;; running in the pool.  If we still cannot launch a
-              ;; thread the program and/or system must be totally
-              ;; borked and there is little we can do.
-              (let ((retry
-                     (if (= (num-threads-get pool) 1)
-                         (catch #t
-                           (lambda ()
-                             (call-with-new-thread (lambda () (thread-loop pool #f)))
-			     #t)
-                           (lambda args
-                             #f))
-                         #f)))
-                (when (not retry)
-		  (num-tasks-set! pool (1- (num-tasks-get pool)))
-		  (num-threads-set! pool (1- (num-threads-get pool)))
-		  (when (and (stopped-get pool)
-			     (blocking-get pool))
-		    (broadcast-condition-variable (condvar-get pool)))
-		  (apply throw args))))))))
+	    (let ((rethrow
+		   (with-mutex mutex
+		     ;; If min-threads is 0 we could be down to 0 threads
+		     ;; with tasks still pending if in the period between
+		     ;; releasing the mutex acquired on entry to this
+		     ;; procedure and acquiring it again on handling this
+		     ;; exception, there have been concurrent calls to
+		     ;; thread-pool-set-max-threads! increasing and reducing
+		     ;; the maximum thread count by at least two other
+		     ;; threads where the launching of all new threads via
+		     ;; that procedure and this one fails.  In such a case we
+		     ;; should be able to launch a rescue thread while
+		     ;; holding the mutex because no other threads could be
+		     ;; running in the pool.  If we still cannot launch a
+		     ;; thread the program and/or system must be totally
+		     ;; borked and there is little we can do.
+		     (let ((retry
+			    (if (= (num-threads-get pool) 1)
+				(catch #t
+				  (lambda ()
+				    (call-with-new-thread (lambda () (thread-loop pool #f)))
+				    #t)
+				  (lambda args
+				    #f))
+				#f)))
+                       (if retry
+			   #f
+			   (begin
+			     (num-tasks-set! pool (1- (num-tasks-get pool)))
+			     (num-threads-set! pool (1- (num-threads-get pool)))
+			     (when (and (stopped-get pool)
+					(blocking-get pool))
+			       (broadcast-condition-variable (condvar-get pool)))
+			     #t))))))
+	      (when rethrow (apply throw args)))))))
     ;; we need to check again whether thread-pool-stop! has been
     ;; called between us releasing the mutex above and reaching here.
     ;; We need to hold the mutex when adding the task so that the
@@ -620,24 +634,27 @@
     ;; await-task-in-thread-pool! to work correctly.  That is not too
     ;; much of an additional point of contention, because
     ;; a-queue-push! is itself serialized.
-    (with-mutex mutex
-      (if (stopped-get pool)
-	  (begin
-	    ;; roll back if the pool has been stopped so we do not add
-	    ;; the task after all to the pool
-	    (num-tasks-set! pool (1- (num-tasks-get pool)))
-	    (throw 'thread-pool-error
-		   "thread-pool-add!"
-		   "thread-pool-add! applied to a thread pool which has been closed"
-		   #f
-		   #f))
-	  (catch #t
-	    (lambda ()
-	      (a-queue-push! (aq-get pool) (cons task fail-handler)))
-	    (lambda args
-	      ;; roll back if adding the task fails
-	      (num-tasks-set! pool (1- (num-tasks-get pool)))
-	      (apply throw args)))))))
+    (let ((exc
+	   (with-mutex mutex
+	     (if (stopped-get pool)
+		 (begin
+		   ;; roll back if the pool has been stopped so we do not add
+		   ;; the task after all to the pool
+		   (num-tasks-set! pool (1- (num-tasks-get pool)))
+		   (list 'thread-pool-error
+			 "thread-pool-add!"
+			 "thread-pool-add! applied to a thread pool which has been closed"
+			 #f
+			 #f))
+		 (catch #t
+		   (lambda ()
+		     (a-queue-push! (aq-get pool) (cons task fail-handler))
+		     #f)
+		   (lambda args
+		     ;; roll back if adding the task fails
+		     (num-tasks-set! pool (1- (num-tasks-get pool)))
+		     args))))))
+      (when exc (apply throw exc)))))
 
 ;; This macro is intended to be called by a task running on a thread
 ;; pool which is about to make a blocking (non-asynchronous) call.  It
