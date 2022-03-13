@@ -1,6 +1,6 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
-<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
+<!-- Created by GNU Texinfo 6.8, https://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>monotonic time (guile-a-sync)</title>
@@ -10,17 +10,19 @@
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
 <link href="index.html" rel="start" title="Top">
 <link href="index.html" rel="up" title="Top">
 <link href="gnome-glib.html" rel="next" title="gnome glib">
 <link href="thread-pool.html" rel="prev" title="thread pool">
 <style type="text/css">
 <!--
+a.copiable-anchor {visibility: hidden; text-decoration: none; line-height: 0em}
 a.summary-letter {text-decoration: none}
 blockquote.indentedblock {margin-right: 0em}
 div.display {margin-left: 3.2em}
 div.example {margin-left: 3.2em}
-div.lisp {margin-left: 3.2em}
 kbd {font-style: oblique}
 pre.display {font-family: inherit}
 pre.format {font-family: inherit}
@@ -29,6 +31,7 @@ pre.menu-preformatted {font-family: serif}
 span.nolinebreak {white-space: nowrap}
 span.roman {font-family: initial; font-weight: normal}
 span.sansserif {font-family: sans-serif; font-weight: normal}
+span:hover a.copiable-anchor {visibility: visible}
 ul.no-bullet {list-style: none}
 -->
 </style>
@@ -39,7 +42,7 @@ ul.no-bullet {list-style: none}
 <body lang="en">
 <span id="monotonic-time"></span><div class="header">
 <p>
-Next: <a href="gnome-glib.html" accesskey="n" rel="next">gnome glib</a>, Previous: <a href="thread-pool.html" accesskey="p" rel="prev">thread pool</a>, Up: <a href="index.html" accesskey="u" rel="up">Top</a> &nbsp; </p>
+Next: <a href="gnome-glib.html" accesskey="n" rel="next">gnome glib</a>, Previous: <a href="thread-pool.html" accesskey="p" rel="prev">thread pool</a>, Up: <a href="index.html" accesskey="u" rel="up">guile-a-sync reference</a> &nbsp; </p>
 </div>
 <hr>
 <h4 class="node-heading">monotonic time</h4>
@@ -47,8 +50,8 @@ Next: <a href="gnome-glib.html" accesskey="n" rel="next">gnome glib</a>, Previou
 <p>The (a-sync monotonic-time) module provides two procedures.  It is
 loaded by the <a href="event-loop.html">(a-sync event-loop)</a> module.
 </p>
-<dl>
-<dt id="index-have_002dmonotonic_002dtime_003f">Scheme Procedure: <strong>have-monotonic-time?</strong></dt>
+<dl class="def">
+<dt id="index-have_002dmonotonic_002dtime_003f"><span class="category">Scheme Procedure: </span><span><strong>have-monotonic-time?</strong><a href='#index-have_002dmonotonic_002dtime_003f' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This procedure indicates whether the get-time procedure (see below)
 provides a monotonic clock.  Almost all modern linux/unix-like systems
 will do so.  This procedure may return #f if windows is in use, or if
@@ -56,8 +59,8 @@ the guile-a-sync library was cross-compiled on one architecture for a
 different one.
 </p></dd></dl>
 
-<dl>
-<dt id="index-get_002dtime">Scheme Procedure: <strong>get-time</strong></dt>
+<dl class="def">
+<dt id="index-get_002dtime"><span class="category">Scheme Procedure: </span><span><strong>get-time</strong><a href='#index-get_002dtime' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This returns the current time as a (secs . usecs) pair from some
 arbitrary epoch.  If (have-monotonic-time) returns #t, then this will
 be derived from a monotonic clock obtained by calling the

@@ -1,6 +1,6 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
-<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
+<!-- Created by GNU Texinfo 6.8, https://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>gnome glib (guile-a-sync)</title>
@@ -10,17 +10,19 @@
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
 <link href="index.html" rel="start" title="Top">
 <link href="index.html" rel="up" title="Top">
 <link href="compose.html" rel="next" title="compose">
 <link href="monotonic-time.html" rel="prev" title="monotonic time">
 <style type="text/css">
 <!--
+a.copiable-anchor {visibility: hidden; text-decoration: none; line-height: 0em}
 a.summary-letter {text-decoration: none}
 blockquote.indentedblock {margin-right: 0em}
 div.display {margin-left: 3.2em}
 div.example {margin-left: 3.2em}
-div.lisp {margin-left: 3.2em}
 kbd {font-style: oblique}
 pre.display {font-family: inherit}
 pre.format {font-family: inherit}
@@ -29,6 +31,7 @@ pre.menu-preformatted {font-family: serif}
 span.nolinebreak {white-space: nowrap}
 span.roman {font-family: initial; font-weight: normal}
 span.sansserif {font-family: sans-serif; font-weight: normal}
+span:hover a.copiable-anchor {visibility: visible}
 ul.no-bullet {list-style: none}
 -->
 </style>
@@ -39,7 +42,7 @@ ul.no-bullet {list-style: none}
 <body lang="en">
 <span id="gnome-glib"></span><div class="header">
 <p>
-Next: <a href="compose.html" accesskey="n" rel="next">compose</a>, Previous: <a href="monotonic-time.html" accesskey="p" rel="prev">monotonic time</a>, Up: <a href="index.html" accesskey="u" rel="up">Top</a> &nbsp; </p>
+Next: <a href="compose.html" accesskey="n" rel="next">compose</a>, Previous: <a href="monotonic-time.html" accesskey="p" rel="prev">monotonic time</a>, Up: <a href="index.html" accesskey="u" rel="up">guile-a-sync reference</a> &nbsp; </p>
 </div>
 <hr>
 <h4 class="node-heading">gnome glib</h4>
@@ -68,8 +71,8 @@ module, so as not to create a hard dependency on guile-gnome.
 </p>
 <p>The (a-sync gnome-glib) module provides the following procedures:
 </p>
-<dl>
-<dt id="index-await_002dglib_002dtask_002din_002dthread">Scheme Procedure: <strong>await-glib-task-in-thread</strong> <em>await resume thunk [handler]</em></dt>
+<dl class="def">
+<dt id="index-await_002dglib_002dtask_002din_002dthread"><span class="category">Scheme Procedure: </span><span><strong>await-glib-task-in-thread</strong> <em>await resume thunk [handler]</em><a href='#index-await_002dglib_002dtask_002din_002dthread' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This is a convenience procedure which will run &rsquo;thunk&rsquo; in its own
 thread, and then post an event to the default glib main loop when
 &rsquo;thunk&rsquo; has finished.  This procedure calls &rsquo;await&rsquo; in the default
@@ -110,8 +113,8 @@ that.
 </pre></div>
 </dd></dl>
 
-<dl>
-<dt id="index-await_002dglib_002dtask">Scheme Procedure: <strong>await-glib-task</strong> <em>await resume thunk</em></dt>
+<dl class="def">
+<dt id="index-await_002dglib_002dtask"><span class="category">Scheme Procedure: </span><span><strong>await-glib-task</strong> <em>await resume thunk</em><a href='#index-await_002dglib_002dtask' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This is a convenience procedure for use with glib, which will run
 &rsquo;thunk&rsquo; in the default glib main loop.  This procedure calls &rsquo;await&rsquo;
 and will return the thunk&rsquo;s return value.  It is intended to be called
@@ -154,8 +157,8 @@ that.
 </pre></div>
 </dd></dl>
 
-<dl>
-<dt id="index-await_002dglib_002dyield">Scheme Procedure: <strong>await-glib-yield</strong> <em>await resume</em></dt>
+<dl class="def">
+<dt id="index-await_002dglib_002dyield"><span class="category">Scheme Procedure: </span><span><strong>await-glib-yield</strong> <em>await resume</em><a href='#index-await_002dglib_002dyield' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This is a convenience procedure for use with glib, which will
 surrender execution to the default glib main loop, so that code in
 other a-sync or compose-a-sync blocks can run.  The remainder of the
@@ -189,8 +192,8 @@ that.
 </pre></div>
 </dd></dl>
 
-<dl>
-<dt id="index-await_002dglib_002dgenerator_002din_002dthread">Scheme Procedure: <strong>await-glib-generator-in-thread</strong> <em>await resume generator proc [handler]</em></dt>
+<dl class="def">
+<dt id="index-await_002dglib_002dgenerator_002din_002dthread"><span class="category">Scheme Procedure: </span><span><strong>await-glib-generator-in-thread</strong> <em>await resume generator proc [handler]</em><a href='#index-await_002dglib_002dgenerator_002din_002dthread' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This is a convenience procedure for acting asynchronously on values
 yielded by generator procedures.  The &rsquo;generator&rsquo; argument is a
 procedure taking one argument, namely a yield argument (see the
@@ -252,8 +255,8 @@ that.
 </pre></div>
 </dd></dl>
 
-<dl>
-<dt id="index-await_002dglib_002dgenerator">Scheme Procedure: <strong>await-glib-generator</strong> <em>await resume generator proc</em></dt>
+<dl class="def">
+<dt id="index-await_002dglib_002dgenerator"><span class="category">Scheme Procedure: </span><span><strong>await-glib-generator</strong> <em>await resume generator proc</em><a href='#index-await_002dglib_002dgenerator' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This is a convenience procedure for acting asynchronously on values
 yielded by generator procedures.  The &rsquo;generator&rsquo; argument is a
 procedure taking one argument, namely a yield argument (see the
@@ -310,8 +313,8 @@ that.
 </pre></div>
 </dd></dl>
 
-<dl>
-<dt id="index-await_002dglib_002dtimeout">Scheme Procedure: <strong>await-glib-timeout</strong> <em>await resume msecs thunk</em></dt>
+<dl class="def">
+<dt id="index-await_002dglib_002dtimeout"><span class="category">Scheme Procedure: </span><span><strong>await-glib-timeout</strong> <em>await resume msecs thunk</em><a href='#index-await_002dglib_002dtimeout' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This is a convenience procedure for use with a glib main loop, which
 will run &rsquo;thunk&rsquo; in the default glib main loop when the timeout
 expires.  This procedure calls &rsquo;await&rsquo; and will return the thunk&rsquo;s
@@ -351,8 +354,8 @@ shouldn&rsquo;t happen unless memory is exhausted.  Exceptions thrown by
 </pre></div>
 </dd></dl>
 
-<dl>
-<dt id="index-await_002dglib_002dsleep">Scheme Procedure: <strong>await-glib-sleep</strong> <em>await resume msecs</em></dt>
+<dl class="def">
+<dt id="index-await_002dglib_002dsleep"><span class="category">Scheme Procedure: </span><span><strong>await-glib-sleep</strong> <em>await resume msecs</em><a href='#index-await_002dglib_002dsleep' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This is a convenience procedure for use with a glib main loop, which
 will suspend execution of code in the current a-sync or compose-a-sync
 block for the duration of &rsquo;msecs&rsquo; milliseconds.  The event loop will
@@ -385,8 +388,8 @@ exhausted.
 </pre></div>
 </dd></dl>
 
-<dl>
-<dt id="index-glib_002dadd_002dwatch">Scheme Procedure: <strong>glib-add-watch</strong> <em>ioc cond func [context]</em></dt>
+<dl class="def">
+<dt id="index-glib_002dadd_002dwatch"><span class="category">Scheme Procedure: </span><span><strong>glib-add-watch</strong> <em>ioc cond func [context]</em><a href='#index-glib_002dadd_002dwatch' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This procedure replaces guile-gnome&rsquo;s g-io-add-watch procedure, which
 won&rsquo;t compile.  It attaches a watch on a g-io-channel object to the
 main context provided, or if none is provided, to the default glib
@@ -412,8 +415,8 @@ some of the difficulties with using g-io-channel watches with
 guile-gnome.
 </p></dd></dl>
 
-<dl>
-<dt id="index-a_002dsync_002dglib_002dread_002dwatch">Scheme Procedure: <strong>a-sync-glib-read-watch</strong> <em>resume fd proc</em></dt>
+<dl class="def">
+<dt id="index-a_002dsync_002dglib_002dread_002dwatch"><span class="category">Scheme Procedure: </span><span><strong>a-sync-glib-read-watch</strong> <em>resume fd proc</em><a href='#index-a_002dsync_002dglib_002dread_002dwatch' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This is a convenience procedure for use with a glib main loop, which
 will run &rsquo;proc&rsquo; in the default glib main loop whenever the file
 descriptor &rsquo;fd&rsquo; is ready for reading, and apply resume (obtained from
@@ -522,8 +525,8 @@ implementation of await-glib-getline:
 </pre></div>
 </dd></dl>
 
-<dl>
-<dt id="index-await_002dglib_002dgetline">Scheme Procedure: <strong>await-glib-getline</strong> <em>await resume port</em></dt>
+<dl class="def">
+<dt id="index-await_002dglib_002dgetline"><span class="category">Scheme Procedure: </span><span><strong>await-glib-getline</strong> <em>await resume port</em><a href='#index-await_002dglib_002dgetline' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This is a convenience procedure for use with a glib main loop, which
 will start a read watch on &rsquo;port&rsquo; for a line of input.  It calls
 &rsquo;await&rsquo; while waiting for input and will return the line of text
@@ -593,8 +596,8 @@ byte will be discarded (this did not occur with earlier versions).
 </pre></div>
 </dd></dl>
 
-<dl>
-<dt id="index-await_002dglib_002dgetblock">Scheme Procedure: <strong>await-glib-getblock</strong> <em>await resume port size</em></dt>
+<dl class="def">
+<dt id="index-await_002dglib_002dgetblock"><span class="category">Scheme Procedure: </span><span><strong>await-glib-getblock</strong> <em>await resume port size</em><a href='#index-await_002dglib_002dgetblock' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This is a convenience procedure for use with a glib main loop, which
 will start a read watch on &rsquo;port&rsquo; for a block of data, such as a
 binary record, of size &rsquo;size&rsquo;.  It calls &rsquo;await&rsquo; while waiting for
@@ -641,8 +644,8 @@ g-main-loop-run if not caught in that way.
 <p>This procedure is first available in version 0.11 of this library.
 </p></dd></dl>
 
-<dl>
-<dt id="index-a_002dsync_002dglib_002dwrite_002dwatch">Scheme Procedure: <strong>a-sync-glib-write-watch</strong> <em>resume fd proc</em></dt>
+<dl class="def">
+<dt id="index-a_002dsync_002dglib_002dwrite_002dwatch"><span class="category">Scheme Procedure: </span><span><strong>a-sync-glib-write-watch</strong> <em>resume fd proc</em><a href='#index-a_002dsync_002dglib_002dwrite_002dwatch' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This is a convenience procedure for use with a glib main loop, which
 will run &rsquo;proc&rsquo; in the default glib main loop whenever the file
 descriptor &rsquo;fd&rsquo; is ready for writing, and apply resume (obtained from
@@ -711,8 +714,8 @@ implementation of await-glib-put-bytevector:
 </pre></div>
 </dd></dl>
 
-<dl>
-<dt id="index-await_002dglib_002dput_002dbytevector">Scheme Procedure: <strong>await-glib-put-bytevector</strong> <em>await resume port bv</em></dt>
+<dl class="def">
+<dt id="index-await_002dglib_002dput_002dbytevector"><span class="category">Scheme Procedure: </span><span><strong>await-glib-put-bytevector</strong> <em>await resume port bv</em><a href='#index-await_002dglib_002dput_002dbytevector' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This is a convenience procedure which will start a write watch on
 &rsquo;port&rsquo; for writing the contents of a bytevector &rsquo;bv&rsquo; to the port.  It
 calls &rsquo;await&rsquo; if it has to wait for output to become available.  The
@@ -784,8 +787,8 @@ straight away without invoking the glib main loop.
 <p>This procedure is first available in version 0.11 of this library.
 </p></dd></dl>
 
-<dl>
-<dt id="index-await_002dglib_002dput_002dstring">Scheme Procedure: <strong>await-glib-put-string</strong> <em>await resume port text</em></dt>
+<dl class="def">
+<dt id="index-await_002dglib_002dput_002dstring"><span class="category">Scheme Procedure: </span><span><strong>await-glib-put-string</strong> <em>await resume port text</em><a href='#index-await_002dglib_002dput_002dstring' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This is a convenience procedure which will start a write watch on
 &rsquo;port&rsquo; for writing a string to the port.  It calls &rsquo;await&rsquo; if it has
 to wait for output to become available.  The event loop will not be
@@ -872,7 +875,7 @@ straight away without invoking the glib main loop.
 <hr>
 <div class="header">
 <p>
-Next: <a href="compose.html" accesskey="n" rel="next">compose</a>, Previous: <a href="monotonic-time.html" accesskey="p" rel="prev">monotonic time</a>, Up: <a href="index.html" accesskey="u" rel="up">Top</a> &nbsp; </p>
+Next: <a href="compose.html">compose</a>, Previous: <a href="monotonic-time.html">monotonic time</a>, Up: <a href="index.html">guile-a-sync reference</a> &nbsp; </p>
 </div>
 
 

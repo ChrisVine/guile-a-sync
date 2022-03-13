@@ -1,6 +1,6 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
-<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
+<!-- Created by GNU Texinfo 6.8, https://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>sockets (guile-a-sync)</title>
@@ -10,17 +10,19 @@
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
 <link href="index.html" rel="start" title="Top">
 <link href="index.html" rel="up" title="Top">
 <link href="thread-pool.html" rel="next" title="thread pool">
 <link href="event-loop.html" rel="prev" title="event loop">
 <style type="text/css">
 <!--
+a.copiable-anchor {visibility: hidden; text-decoration: none; line-height: 0em}
 a.summary-letter {text-decoration: none}
 blockquote.indentedblock {margin-right: 0em}
 div.display {margin-left: 3.2em}
 div.example {margin-left: 3.2em}
-div.lisp {margin-left: 3.2em}
 kbd {font-style: oblique}
 pre.display {font-family: inherit}
 pre.format {font-family: inherit}
@@ -29,6 +31,7 @@ pre.menu-preformatted {font-family: serif}
 span.nolinebreak {white-space: nowrap}
 span.roman {font-family: initial; font-weight: normal}
 span.sansserif {font-family: sans-serif; font-weight: normal}
+span:hover a.copiable-anchor {visibility: visible}
 ul.no-bullet {list-style: none}
 -->
 </style>
@@ -39,7 +42,7 @@ ul.no-bullet {list-style: none}
 <body lang="en">
 <span id="sockets"></span><div class="header">
 <p>
-Next: <a href="thread-pool.html" accesskey="n" rel="next">thread pool</a>, Previous: <a href="event-loop.html" accesskey="p" rel="prev">event loop</a>, Up: <a href="index.html" accesskey="u" rel="up">Top</a> &nbsp; </p>
+Next: <a href="thread-pool.html" accesskey="n" rel="next">thread pool</a>, Previous: <a href="event-loop.html" accesskey="p" rel="prev">event loop</a>, Up: <a href="index.html" accesskey="u" rel="up">guile-a-sync reference</a> &nbsp; </p>
 </div>
 <hr>
 <h4 class="node-heading">sockets</h4>
@@ -47,8 +50,8 @@ Next: <a href="thread-pool.html" accesskey="n" rel="next">thread pool</a>, Previ
 <p>This (a-sync sockets) module provides asynchronous accept and connect
 procedures for sockets.
 </p>
-<dl>
-<dt id="index-await_002daccept_0021">Scheme Procedure: <strong>await-accept!</strong> <em>await resume [loop] sock</em></dt>
+<dl class="def">
+<dt id="index-await_002daccept_0021"><span class="category">Scheme Procedure: </span><span><strong>await-accept!</strong> <em>await resume [loop] sock</em><a href='#index-await_002daccept_0021' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This is a convenience procedure which will start a watch on listening
 socket &rsquo;sock&rsquo; for a connection.  &rsquo;sock&rsquo; must be a non-blocking socket
 port.  This procedure wraps the guile &rsquo;accept&rsquo; procedure and therefore
@@ -87,8 +90,8 @@ the event loop.
 <p>This procedure is first available in version 0.12 of this library.
 </p></dd></dl>
 
-<dl>
-<dt id="index-await_002dconnect_0021">Scheme Procedure: <strong>await-connect!</strong> <em>await resume [loop] sock . args</em></dt>
+<dl class="def">
+<dt id="index-await_002dconnect_0021"><span class="category">Scheme Procedure: </span><span><strong>await-connect!</strong> <em>await resume [loop] sock . args</em><a href='#index-await_002dconnect_0021' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This is a convenience procedure which will connect socket &rsquo;sock&rsquo; to a
 remote host.  Particulars of the remote host are given by &rsquo;args&rsquo; which
 are the arguments (other than &rsquo;sock&rsquo;) taken by guile&rsquo;s &rsquo;connect&rsquo;
@@ -127,7 +130,7 @@ return straight away without invoking the event loop.
 <hr>
 <div class="header">
 <p>
-Next: <a href="thread-pool.html" accesskey="n" rel="next">thread pool</a>, Previous: <a href="event-loop.html" accesskey="p" rel="prev">event loop</a>, Up: <a href="index.html" accesskey="u" rel="up">Top</a> &nbsp; </p>
+Next: <a href="thread-pool.html">thread pool</a>, Previous: <a href="event-loop.html">event loop</a>, Up: <a href="index.html">guile-a-sync reference</a> &nbsp; </p>
 </div>
 
 

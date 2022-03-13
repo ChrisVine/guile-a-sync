@@ -3,7 +3,7 @@
 .PHONY: docs
 docs:
 	makeinfo guile-a-sync.texi
-	makeinfo --html guile-a-sync.texi
+	makeinfo --html -c FORMAT_MENU=menu guile-a-sync.texi
 	rm -rf html
 	mv guile-a-sync html
 
